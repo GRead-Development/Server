@@ -198,7 +198,7 @@ add_filter('login_headertext', 'hs_custom_login_logo_title');
  * Remove WordPress registration link if custom registration is enabled
  */
 function hs_remove_register_link($links) {
-    $custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+    $custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
 
     if ($custom_registration_enabled) {
         $custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
@@ -272,7 +272,7 @@ function hs_register_login_integration_settings() {
     register_setting('hs_social_auth', 'hs_custom_login_enabled', array(
         'type' => 'boolean',
         'sanitize_callback' => 'rest_sanitize_boolean',
-        'default' => true,
+        'default' => false,
     ));
 
     register_setting('hs_social_auth', 'hs_custom_login_page', array(
@@ -285,7 +285,7 @@ function hs_register_login_integration_settings() {
     register_setting('hs_social_auth', 'hs_custom_registration_enabled', array(
         'type' => 'boolean',
         'sanitize_callback' => 'rest_sanitize_boolean',
-        'default' => true,
+        'default' => false,
     ));
 
     register_setting('hs_social_auth', 'hs_custom_registration_page', array(
@@ -329,7 +329,7 @@ add_action('admin_init', 'hs_register_login_integration_settings');
 function hs_buddypress_registration_override() {
     // If BuddyPress is active and custom registration is enabled
     if (function_exists('bp_is_register_page') && bp_is_register_page()) {
-        $custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+        $custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
         $custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
 
         if ($custom_registration_enabled && get_permalink() !== $custom_registration_page) {
@@ -346,7 +346,7 @@ add_action('template_redirect', 'hs_buddypress_registration_override');
 function hs_buddypress_login_override() {
     // If BuddyPress is active and custom login is enabled
     if (function_exists('bp_is_activation_page')) {
-        $custom_login_enabled = get_option('hs_custom_login_enabled', true);
+        $custom_login_enabled = get_option('hs_custom_login_enabled', false);
         $custom_login_page = get_option('hs_custom_login_page', home_url('/login'));
 
         // Don't override activation pages
