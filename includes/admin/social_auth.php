@@ -269,7 +269,7 @@ function hs_render_social_auth_settings_page() {
                             <label for="hs_custom_login_enabled">Replace WordPress Login</label>
                         </th>
                         <td>
-                            <input type="checkbox" id="hs_custom_login_enabled" name="hs_custom_login_enabled" value="1" <?php checked(get_option('hs_custom_login_enabled', true), 1); ?>>
+                            <input type="checkbox" id="hs_custom_login_enabled" name="hs_custom_login_enabled" value="1" <?php checked(get_option('hs_custom_login_enabled', false), 1); ?>>
                             <p class="description">Redirect wp-login.php to your custom login page with social auth</p>
                         </td>
                     </tr>
@@ -287,7 +287,7 @@ function hs_render_social_auth_settings_page() {
                             <label for="hs_custom_registration_enabled">Replace WordPress Registration</label>
                         </th>
                         <td>
-                            <input type="checkbox" id="hs_custom_registration_enabled" name="hs_custom_registration_enabled" value="1" <?php checked(get_option('hs_custom_registration_enabled', true), 1); ?>>
+                            <input type="checkbox" id="hs_custom_registration_enabled" name="hs_custom_registration_enabled" value="1" <?php checked(get_option('hs_custom_registration_enabled', false), 1); ?>>
                             <p class="description">Redirect wp-login.php?action=register to your custom registration page</p>
                         </td>
                     </tr>

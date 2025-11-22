@@ -12,7 +12,7 @@ if (!defined('ABSPATH'))
 // Redirect from the Wordpress login page to the custom login page
 function hs_redirect_to_custom_login()
 {
-	$custom_login_enabled = get_option('hs_custom_login_enabled', true);
+	$custom_login_enabled = get_option('hs_custom_login_enabled', false);
 	$custom_login_page = get_option('hs_custom_login_page', home_url('/login'));
 
 	if (!$custom_login_enabled)
@@ -41,7 +41,7 @@ add_action('init', 'hs_redirect_to_custom_login');
 // Redirect from the Wordpress registration page to the custom registration page
 function hs_redirect_to_custom_registration()
 {
-	$custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+	$custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
 	$custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
 
 	if (!$custom_registration_enabled)
