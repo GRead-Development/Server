@@ -2,7 +2,7 @@
 /**
  * Plugin Name: HotSoup!
  * Description: A delicious plugin for tracking your reading!
- * Version: 0.36
+ * Version: 0.37
  * Author: Bryce Davis, Daniel Teberian
  */
 
@@ -83,6 +83,10 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin/authors_series_manager.
 require_once plugin_dir_path(__FILE__) . 'includes/authors_series_display.php';
 // Database repair utilities
 require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
+// Social authentication (Apple & Google Sign-In)
+require_once plugin_dir_path(__FILE__) . 'includes/api/auth.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/social_auth_settings.php';
+require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/registration_form.php';
 
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );
