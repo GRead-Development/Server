@@ -18,6 +18,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/book_merger.php';
 require_once plugin_dir_path(__FILE__) . 'includes/user_isbn_selector.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/book_merger.php';
 require_once plugin_dir_path(__FILE__) . 'includes/statistics.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/social_auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/authors.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/mentions.php';
@@ -25,6 +26,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/achievements.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/inaccuracy_reports.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/notes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/chimera.php';
+require_once plugin_dir_path(__FILE__) . 'includes/auth/social_login.php';
 require_once plugin_dir_path(__FILE__) . 'includes/search/filter.php';
 // The importer form
 require_once plugin_dir_path(__FILE__) . 'includes/importer.php';
