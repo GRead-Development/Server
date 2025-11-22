@@ -87,6 +87,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/social_auth_settings.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/registration_form.php';
+require_once plugin_dir_path(__FILE__) . 'includes/login_integration.php';
 
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );

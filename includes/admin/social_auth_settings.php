@@ -118,6 +118,7 @@ function hs_render_social_auth_settings_page() {
             <a href="#apple-settings" class="nav-tab nav-tab-active">Apple Sign-In</a>
             <a href="#google-settings" class="nav-tab">Google Sign-In</a>
             <a href="#general-settings" class="nav-tab">General Settings</a>
+            <a href="#login-integration" class="nav-tab">Login Integration</a>
             <a href="#setup-guide" class="nav-tab">Setup Guide</a>
         </h2>
 
@@ -255,6 +256,97 @@ function hs_render_social_auth_settings_page() {
                         </td>
                     </tr>
                 </table>
+            </div>
+
+            <!-- Login Integration -->
+            <div id="login-integration" class="tab-content" style="display: none;">
+                <h2>WordPress Login Integration</h2>
+                <p>Control how HotSoup integrates with WordPress login and registration pages.</p>
+
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_custom_login_enabled">Replace WordPress Login</label>
+                        </th>
+                        <td>
+                            <input type="checkbox" id="hs_custom_login_enabled" name="hs_custom_login_enabled" value="1" <?php checked(get_option('hs_custom_login_enabled', true), 1); ?>>
+                            <p class="description">Redirect wp-login.php to your custom login page with social auth</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_custom_login_page">Custom Login Page URL</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_custom_login_page" name="hs_custom_login_page" value="<?php echo esc_attr(get_option('hs_custom_login_page', home_url('/login'))); ?>" class="regular-text">
+                            <p class="description">URL of your page with [hs_signin_form] shortcode</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_custom_registration_enabled">Replace WordPress Registration</label>
+                        </th>
+                        <td>
+                            <input type="checkbox" id="hs_custom_registration_enabled" name="hs_custom_registration_enabled" value="1" <?php checked(get_option('hs_custom_registration_enabled', true), 1); ?>>
+                            <p class="description">Redirect wp-login.php?action=register to your custom registration page</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_custom_registration_page">Custom Registration Page URL</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_custom_registration_page" name="hs_custom_registration_page" value="<?php echo esc_attr(get_option('hs_custom_registration_page', home_url('/register'))); ?>" class="regular-text">
+                            <p class="description">URL of your page with [hs_registration_form] shortcode</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_add_social_to_wp_login">Add Social Auth to wp-login.php</label>
+                        </th>
+                        <td>
+                            <input type="checkbox" id="hs_add_social_to_wp_login" name="hs_add_social_to_wp_login" value="1" <?php checked(get_option('hs_add_social_to_wp_login'), 1); ?>>
+                            <p class="description">Add social auth buttons to default WordPress login page (alternative to full redirect)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_login_redirect_url">After Login Redirect</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_login_redirect_url" name="hs_login_redirect_url" value="<?php echo esc_attr(get_option('hs_login_redirect_url', home_url('/'))); ?>" class="regular-text">
+                            <p class="description">Where to redirect users after successful login (subscribers only, admins go to dashboard)</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_logout_redirect_url">After Logout Redirect</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_logout_redirect_url" name="hs_logout_redirect_url" value="<?php echo esc_attr(get_option('hs_logout_redirect_url', home_url('/'))); ?>" class="regular-text">
+                            <p class="description">Where to redirect users after logout</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_login_logo_url">Custom Login Logo URL</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_login_logo_url" name="hs_login_logo_url" value="<?php echo esc_attr(get_option('hs_login_logo_url')); ?>" class="regular-text">
+                            <p class="description">URL to your logo image (optional, replaces WordPress logo on login page)</p>
+                        </td>
+                    </tr>
+                </table>
+
+                <h3 style="margin-top: 30px;">Quick Setup Instructions</h3>
+                <ol>
+                    <li>Create a page called "Login" and add the shortcode: <code>[hs_signin_form]</code></li>
+                    <li>Create a page called "Register" and add the shortcode: <code>[hs_registration_form]</code></li>
+                    <li>Note the URLs of these pages (e.g., <code><?php echo home_url('/login'); ?></code> and <code><?php echo home_url('/register'); ?></code>)</li>
+                    <li>Enter these URLs above and enable the redirects</li>
+                    <li>Save settings</li>
+                    <li>Try visiting <code><?php echo admin_url('wp-login.php'); ?></code> - you should be redirected to your custom page!</li>
+                </ol>
             </div>
 
             <!-- Setup Guide -->
