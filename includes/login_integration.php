@@ -320,7 +320,7 @@ add_action('admin_init', 'hs_register_login_integration_settings');
 function hs_buddypress_registration_override() {
     // If BuddyPress is active and custom registration is enabled
     if (function_exists('bp_is_register_page') && bp_is_register_page()) {
-        $custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+        $custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
         $custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
 
         if ($custom_registration_enabled && get_permalink() !== $custom_registration_page) {
