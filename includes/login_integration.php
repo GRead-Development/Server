@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
  * Redirect WordPress login page to custom login page
  */
 function hs_redirect_to_custom_login() {
-    $custom_login_enabled = get_option('hs_custom_login_enabled', true);
+    $custom_login_enabled = get_option('hs_custom_login_enabled', false);
     $custom_login_page = get_option('hs_custom_login_page', home_url('/login'));
 
     if (!$custom_login_enabled) {
@@ -41,7 +41,7 @@ add_action('init', 'hs_redirect_to_custom_login');
  * Redirect WordPress registration page to custom registration page
  */
 function hs_redirect_to_custom_registration() {
-    $custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+    $custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
     $custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
 
     if (!$custom_registration_enabled) {
@@ -189,7 +189,7 @@ add_filter('login_headertext', 'hs_custom_login_logo_title');
  * Remove WordPress registration link if custom registration is enabled
  */
 function hs_remove_register_link($links) {
-    $custom_registration_enabled = get_option('hs_custom_registration_enabled', true);
+    $custom_registration_enabled = get_option('hs_custom_registration_enabled', false);
 
     if ($custom_registration_enabled) {
         $custom_registration_page = get_option('hs_custom_registration_page', home_url('/register'));
@@ -263,7 +263,7 @@ function hs_register_login_integration_settings() {
     register_setting('hs_social_auth', 'hs_custom_login_enabled', array(
         'type' => 'boolean',
         'sanitize_callback' => 'rest_sanitize_boolean',
-        'default' => true,
+        'default' => false,
     ));
 
     register_setting('hs_social_auth', 'hs_custom_login_page', array(
@@ -276,7 +276,7 @@ function hs_register_login_integration_settings() {
     register_setting('hs_social_auth', 'hs_custom_registration_enabled', array(
         'type' => 'boolean',
         'sanitize_callback' => 'rest_sanitize_boolean',
-        'default' => true,
+        'default' => false,
     ));
 
     register_setting('hs_social_auth', 'hs_custom_registration_page', array(
