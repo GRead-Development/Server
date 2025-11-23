@@ -127,6 +127,73 @@ function hs_add_social_auth_to_login_page()
 add_action('login_form', 'hs_add_social_auth_to_login_page');
 
 
+// Add social login buttons to the WordPress registration page
+function hs_add_social_auth_to_register_page()
+{
+	$add_to_wp_login = get_option('hs_add_social_to_wp_login', false);
+
+	if (!$add_to_wp_login)
+	{
+		return;
+	}
+
+	$apple_enabled = get_option('hs_apple_enabled', false);
+	$google_enabled = get_option('hs_google_enabled', false);
+
+	if (!$apple_enabled && !$google_enabled)
+	{
+		return;
+	}
+
+	?>
+
+	<style>
+		.hs-wp-login-social
+		{
+			margin-bottom: 20px;
+		}
+
+		.hs-wp-login-social .hs-social-btn
+		{
+			width: 100%;
+			margin-bottom: 10px;
+		}
+
+		.hs-wp-login-divider
+		{
+			text-align: center;
+			margin: 20px 0;
+			color: #72777c;
+		}
+
+	</style>
+
+	<div class="hs-login-social">
+	  <?php if ($apple_enabled): ?>
+        <button class="hs-social-btn hs-apple-signin-btn" data-mode="register" style="width: 100%; margin-bottom: 10px;">
+            Sign up with Apple
+        </button>
+        <?php endif; ?>
+
+        <?php if ($google_enabled): ?>
+        <div id="hs-google-signin-button"></div>
+        <button class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
+            Sign up with Google
+        </button>
+        <?php endif; ?>
+
+        <div class="hs-wp-login-divider">or</div>
+	</div>
+
+	<input type="hidden" class="hs-auth-mode" value="register">
+	<div class="hs-auth-loading"></div>
+	<div class="hs-auth-error"></div>
+	<div class="hs-auth-success"></div>
+	<?php
+}
+add_action('register_form', 'hs_add_social_auth_to_register_page');
+
+
 function hs_enqueue_login_scripts() {
     $add_to_wp_login = get_option('hs_add_social_to_wp_login', false);
 
