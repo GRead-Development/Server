@@ -214,8 +214,8 @@ function hs_enqueue_login_scripts() {
         'googleEnabled' => get_option('hs_google_enabled', false),
         'appleClientId' => get_option('hs_apple_client_id', ''),
         'googleClientId' => get_option('hs_google_client_id', ''),
-        'redirectUri' => home_url('/'),
-        'redirectAfterLogin' => home_url('/'),
+        'redirectUri' => get_option('hs_apple_redirect_uri', home_url('/')),
+        'redirectAfterLogin' => get_option('hs_login_redirect_url', home_url('/')),
         'tosUrl' => get_option('hs_tos_url', 'https://gread.fun/tos'),
     ));
 }
@@ -452,8 +452,8 @@ function hs_enqueue_social_auth_scripts() {
         'googleEnabled' => get_option('hs_google_enabled', false),
         'appleClientId' => get_option('hs_apple_client_id', ''),
         'googleClientId' => get_option('hs_google_client_id', ''),
-        'redirectUri' => home_url('/'),
-        'redirectAfterLogin' => home_url('/'),
+        'redirectUri' => get_option('hs_apple_redirect_uri', home_url('/')),
+        'redirectAfterLogin' => get_option('hs_login_redirect_url', home_url('/')),
         'tosUrl' => get_option('hs_tos_url', 'https://gread.fun/tos'),
     ));
 }

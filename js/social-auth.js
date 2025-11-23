@@ -47,10 +47,13 @@
         }
 
         try {
+            // Use configured redirect URI or fallback to current origin
+            const redirectURI = config.redirectUri || window.location.origin + '/';
+
             AppleID.auth.init({
                 clientId: config.appleClientId,
                 scope: 'name email',
-                redirectURI: config.redirectUri,
+                redirectURI: redirectURI,
                 usePopup: true
             });
         } catch (error) {
