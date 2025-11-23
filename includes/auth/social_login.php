@@ -428,22 +428,33 @@ add_action('template_redirect', 'hs_buddypress_login_override');
  * Enqueue scripts for custom login/registration pages
  */
 function hs_enqueue_social_auth_scripts() {
-    // Only enqueue on pages with our shortcodes
+    // Check if we should load scripts
     global $post;
-    if (!is_a($post, 'WP_Post')) {
-        return;
+
+    $should_load = false;
+
+    // Check if current page has our shortcodes
+    if (is_a($post, 'WP_Post')) {
+        if (has_shortcode($post->post_content, 'hs_signin_form') ||
+            has_shortcode($post->post_content, 'hs_registration_form')) {
+            $should_load = true;
+        }
     }
 
-    if (!has_shortcode($post->post_content, 'hs_signin_form') &&
-        !has_shortcode($post->post_content, 'hs_registration_form')) {
+    // Also load on common registration/login page slugs
+    if (is_page(array('register', 'registration', 'signup', 'sign-up', 'login', 'signin', 'sign-in'))) {
+        $should_load = true;
+    }
+
+    if (!$should_load) {
         return;
     }
 
     // Enqueue CSS
-    wp_enqueue_style('hs-social-auth', plugins_url('css/social-auth.css', dirname(__FILE__, 2)), array(), '0.37');
+    wp_enqueue_style('hs-social-auth', plugins_url('css/social-auth.css', dirname(__FILE__, 2)), array(), '0.38');
 
     // Enqueue JavaScript
-    wp_enqueue_script('hs-social-auth', plugins_url('js/social-auth.js', dirname(__FILE__, 2)), array('jquery'), '0.37', true);
+    wp_enqueue_script('hs-social-auth', plugins_url('js/social-auth.js', dirname(__FILE__, 2)), array('jquery'), '0.38', true);
 
     // Localize script
     wp_localize_script('hs-social-auth', 'hsAuthConfig', array(
