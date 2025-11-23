@@ -25,6 +25,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/mentions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/achievements.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/inaccuracy_reports.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/notes.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/social_login.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/chimera.php';
 require_once plugin_dir_path(__FILE__) . 'includes/auth/social_login.php';
 require_once plugin_dir_path(__FILE__) . 'includes/search/filter.php';

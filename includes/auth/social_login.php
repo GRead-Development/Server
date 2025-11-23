@@ -127,6 +127,73 @@ function hs_add_social_auth_to_login_page()
 add_action('login_form', 'hs_add_social_auth_to_login_page');
 
 
+// Add social login buttons to the WordPress registration page
+function hs_add_social_auth_to_register_page()
+{
+	$add_to_wp_login = get_option('hs_add_social_to_wp_login', false);
+
+	if (!$add_to_wp_login)
+	{
+		return;
+	}
+
+	$apple_enabled = get_option('hs_apple_enabled', false);
+	$google_enabled = get_option('hs_google_enabled', false);
+
+	if (!$apple_enabled && !$google_enabled)
+	{
+		return;
+	}
+
+	?>
+
+	<style>
+		.hs-wp-login-social
+		{
+			margin-bottom: 20px;
+		}
+
+		.hs-wp-login-social .hs-social-btn
+		{
+			width: 100%;
+			margin-bottom: 10px;
+		}
+
+		.hs-wp-login-divider
+		{
+			text-align: center;
+			margin: 20px 0;
+			color: #72777c;
+		}
+
+	</style>
+
+	<div class="hs-login-social">
+	  <?php if ($apple_enabled): ?>
+        <button class="hs-social-btn hs-apple-signin-btn" data-mode="register" style="width: 100%; margin-bottom: 10px;">
+            Sign up with Apple
+        </button>
+        <?php endif; ?>
+
+        <?php if ($google_enabled): ?>
+        <div id="hs-google-signin-button"></div>
+        <button class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
+            Sign up with Google
+        </button>
+        <?php endif; ?>
+
+        <div class="hs-wp-login-divider">or</div>
+	</div>
+
+	<input type="hidden" class="hs-auth-mode" value="register">
+	<div class="hs-auth-loading"></div>
+	<div class="hs-auth-error"></div>
+	<div class="hs-auth-success"></div>
+	<?php
+}
+add_action('register_form', 'hs_add_social_auth_to_register_page');
+
+
 function hs_enqueue_login_scripts() {
     $add_to_wp_login = get_option('hs_add_social_to_wp_login', false);
 
@@ -147,8 +214,8 @@ function hs_enqueue_login_scripts() {
         'googleEnabled' => get_option('hs_google_enabled', false),
         'appleClientId' => get_option('hs_apple_client_id', ''),
         'googleClientId' => get_option('hs_google_client_id', ''),
-        'redirectUri' => home_url('/'),
-        'redirectAfterLogin' => home_url('/'),
+        'redirectUri' => get_option('hs_apple_redirect_uri', home_url('/')),
+        'redirectAfterLogin' => get_option('hs_login_redirect_url', home_url('/')),
         'tosUrl' => get_option('hs_tos_url', 'https://gread.fun/tos'),
     ));
 }
@@ -356,3 +423,155 @@ function hs_buddypress_login_override() {
     }
 }
 add_action('template_redirect', 'hs_buddypress_login_override');
+
+/**
+ * Enqueue scripts for custom login/registration pages
+ */
+function hs_enqueue_social_auth_scripts() {
+    // Only enqueue on pages with our shortcodes
+    global $post;
+    if (!is_a($post, 'WP_Post')) {
+        return;
+    }
+
+    if (!has_shortcode($post->post_content, 'hs_signin_form') &&
+        !has_shortcode($post->post_content, 'hs_registration_form')) {
+        return;
+    }
+
+    // Enqueue CSS
+    wp_enqueue_style('hs-social-auth', plugins_url('css/social-auth.css', dirname(__FILE__, 2)), array(), '0.37');
+
+    // Enqueue JavaScript
+    wp_enqueue_script('hs-social-auth', plugins_url('js/social-auth.js', dirname(__FILE__, 2)), array('jquery'), '0.37', true);
+
+    // Localize script
+    wp_localize_script('hs-social-auth', 'hsAuthConfig', array(
+        'apiUrl' => rest_url('gread/v1'),
+        'appleEnabled' => get_option('hs_apple_enabled', false),
+        'googleEnabled' => get_option('hs_google_enabled', false),
+        'appleClientId' => get_option('hs_apple_client_id', ''),
+        'googleClientId' => get_option('hs_google_client_id', ''),
+        'redirectUri' => get_option('hs_apple_redirect_uri', home_url('/')),
+        'redirectAfterLogin' => get_option('hs_login_redirect_url', home_url('/')),
+        'tosUrl' => get_option('hs_tos_url', 'https://gread.fun/tos'),
+    ));
+}
+add_action('wp_enqueue_scripts', 'hs_enqueue_social_auth_scripts');
+
+/**
+ * Sign-in form shortcode [hs_signin_form]
+ */
+function hs_signin_form_shortcode($atts) {
+    // Check if user is already logged in
+    if (is_user_logged_in()) {
+        return '<p>You are already logged in. <a href="' . wp_logout_url(home_url('/')) . '">Logout</a></p>';
+    }
+
+    $apple_enabled = get_option('hs_apple_enabled', false);
+    $google_enabled = get_option('hs_google_enabled', false);
+
+    if (!$apple_enabled && !$google_enabled) {
+        return '<p>Social authentication is not configured. Please contact the site administrator.</p>';
+    }
+
+    ob_start();
+    ?>
+    <div class="hs-social-auth-container">
+        <h2>Sign In</h2>
+
+        <?php if ($apple_enabled): ?>
+        <button class="hs-social-btn hs-apple-signin-btn" data-mode="signin">
+            Sign in with Apple
+        </button>
+        <?php endif; ?>
+
+        <?php if ($google_enabled): ?>
+        <div id="hs-google-signin-button"></div>
+        <button class="hs-social-btn hs-google-signin-btn" data-mode="signin" style="display: none;">
+            Sign in with Google
+        </button>
+        <?php endif; ?>
+
+        <input type="hidden" class="hs-auth-mode" value="signin">
+        <div class="hs-auth-loading"></div>
+        <div class="hs-auth-error"></div>
+        <div class="hs-auth-success"></div>
+
+        <div class="hs-social-divider">or</div>
+
+        <p style="text-align: center;">
+            Don't have an account? <a href="<?php echo esc_url(get_option('hs_custom_registration_page', home_url('/register'))); ?>">Register</a>
+        </p>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('hs_signin_form', 'hs_signin_form_shortcode');
+
+/**
+ * Registration form shortcode [hs_registration_form]
+ */
+function hs_registration_form_shortcode($atts) {
+    // Check if user is already logged in
+    if (is_user_logged_in()) {
+        return '<p>You are already logged in. <a href="' . wp_logout_url(home_url('/')) . '">Logout</a></p>';
+    }
+
+    // Check if registration is enabled
+    if (!get_option('users_can_register')) {
+        return '<p>User registration is currently disabled. Please contact the site administrator.</p>';
+    }
+
+    $apple_enabled = get_option('hs_apple_enabled', false);
+    $google_enabled = get_option('hs_google_enabled', false);
+
+    if (!$apple_enabled && !$google_enabled) {
+        return '<p>Social authentication is not configured. Please contact the site administrator.</p>';
+    }
+
+    $require_tos = get_option('hs_require_tos_acceptance', true);
+    $tos_url = get_option('hs_tos_url', 'https://gread.fun/tos');
+
+    ob_start();
+    ?>
+    <div class="hs-social-auth-container">
+        <h2>Create Account</h2>
+
+        <?php if ($apple_enabled): ?>
+        <button class="hs-social-btn hs-apple-signin-btn" data-mode="register">
+            Sign up with Apple
+        </button>
+        <?php endif; ?>
+
+        <?php if ($google_enabled): ?>
+        <div id="hs-google-signin-button"></div>
+        <button class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
+            Sign up with Google
+        </button>
+        <?php endif; ?>
+
+        <?php if ($require_tos): ?>
+        <div class="hs-tos-container">
+            <label>
+                <input type="checkbox" id="hs-tos-acceptance" required>
+                I accept the <a href="<?php echo esc_url($tos_url); ?>" target="_blank">Terms of Service</a>
+            </label>
+        </div>
+        <?php endif; ?>
+
+        <input type="hidden" class="hs-auth-mode" value="register">
+        <div class="hs-auth-loading"></div>
+        <div class="hs-auth-error"></div>
+        <div class="hs-auth-success"></div>
+
+        <div class="hs-social-divider">or</div>
+
+        <p style="text-align: center;">
+            Already have an account? <a href="<?php echo esc_url(get_option('hs_custom_login_page', home_url('/login'))); ?>">Sign In</a>
+        </p>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('hs_registration_form', 'hs_registration_form_shortcode');

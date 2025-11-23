@@ -62,6 +62,12 @@ function hs_register_social_auth_settings() {
         'default' => false,
     ));
 
+    register_setting('hs_social_auth', 'hs_apple_redirect_uri', array(
+        'type' => 'string',
+        'sanitize_callback' => 'esc_url_raw',
+        'default' => '',
+    ));
+
     // Google Settings
     register_setting('hs_social_auth', 'hs_google_client_id', array(
         'type' => 'string',
@@ -174,6 +180,15 @@ function hs_render_social_auth_settings_page() {
                         <td>
                             <textarea id="hs_apple_private_key" name="hs_apple_private_key" rows="8" class="large-text code"><?php echo esc_textarea(get_option('hs_apple_private_key')); ?></textarea>
                             <p class="description">Your Apple private key (.p8 file contents). Keep this secure!</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">
+                            <label for="hs_apple_redirect_uri">Redirect URI</label>
+                        </th>
+                        <td>
+                            <input type="url" id="hs_apple_redirect_uri" name="hs_apple_redirect_uri" value="<?php echo esc_attr(get_option('hs_apple_redirect_uri', home_url('/'))); ?>" class="regular-text">
+                            <p class="description">Return URL configured in Apple Developer Console (usually your homepage: <?php echo esc_html(home_url('/')); ?>)</p>
                         </td>
                     </tr>
                 </table>
@@ -359,15 +374,17 @@ function hs_render_social_auth_settings_page() {
                         <li>Go to <a href="https://developer.apple.com" target="_blank">Apple Developer Portal</a></li>
                         <li>Create an App ID for your application</li>
                         <li>Enable "Sign in with Apple" capability</li>
-                        <li>Create a Services ID</li>
+                        <li>Create a Services ID (this becomes your Client ID)</li>
                         <li>Configure the Services ID with your domain and return URLs:
                             <ul>
-                                <li>Domain: <code><?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?></code></li>
-                                <li>Return URL: <code><?php echo esc_url(home_url()); ?></code></li>
+                                <li><strong>Domain:</strong> <code><?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?></code></li>
+                                <li><strong>Return URL:</strong> <code><?php echo esc_url(home_url('/')); ?></code></li>
+                                <li>Note: The Return URL in Apple Developer Console MUST exactly match the Redirect URI above</li>
                             </ul>
                         </li>
                         <li>Create a Private Key and download the .p8 file</li>
-                        <li>Enter your Team ID, Key ID, Client ID (Services ID), and Private Key above</li>
+                        <li>Enter your Team ID, Key ID, Client ID (Services ID), Private Key, and Redirect URI in the settings above</li>
+                        <li>Make sure the Redirect URI field matches exactly what you entered in Apple Developer Console</li>
                     </ol>
                 </div>
 
