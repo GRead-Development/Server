@@ -187,8 +187,21 @@ function hs_render_social_auth_settings_page() {
                             <label for="hs_apple_redirect_uri">Redirect URI</label>
                         </th>
                         <td>
-                            <input type="url" id="hs_apple_redirect_uri" name="hs_apple_redirect_uri" value="<?php echo esc_attr(get_option('hs_apple_redirect_uri', home_url('/'))); ?>" class="regular-text">
-                            <p class="description">Return URL configured in Apple Developer Console (usually your homepage: <?php echo esc_html(home_url('/')); ?>)</p>
+                            <input type="url" id="hs_apple_redirect_uri" name="hs_apple_redirect_uri" value="<?php echo esc_attr(get_option('hs_apple_redirect_uri', home_url('/'))); ?>" class="large-text">
+                            <p class="description">
+                                <strong>Important:</strong> This must EXACTLY match the "Return URL" you configured in Apple Developer Console.<br>
+                                Recommended value: <code><?php echo esc_html(home_url('/')); ?></code><br>
+                                Must include <code>https://</code> and trailing slash if your site uses one.
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Configuration Check</th>
+                        <td>
+                            <a href="<?php echo esc_url(home_url('/debug-apple-config.php')); ?>" target="_blank" class="button">
+                                🔍 Debug Apple Configuration
+                            </a>
+                            <p class="description">Click to see your current settings and get step-by-step instructions</p>
                         </td>
                     </tr>
                 </table>
@@ -371,21 +384,42 @@ function hs_render_social_auth_settings_page() {
                 <div class="card">
                     <h3>Setting up Apple Sign-In</h3>
                     <ol>
-                        <li>Go to <a href="https://developer.apple.com" target="_blank">Apple Developer Portal</a></li>
-                        <li>Create an App ID for your application</li>
-                        <li>Enable "Sign in with Apple" capability</li>
-                        <li>Create a Services ID (this becomes your Client ID)</li>
-                        <li>Configure the Services ID with your domain and return URLs:
+                        <li>Go to <a href="https://developer.apple.com/account/resources/identifiers/list/serviceId" target="_blank">Apple Developer Portal - Service IDs</a></li>
+                        <li>Select your Service ID (or create one if you haven't)</li>
+                        <li>Click the <strong>Edit</strong> button</li>
+                        <li>Check <strong>"Sign in with Apple"</strong> if not already enabled</li>
+                        <li>Click <strong>"Configure"</strong> next to "Sign in with Apple"</li>
+                        <li>In the Web Authentication Configuration popup:
                             <ul>
-                                <li><strong>Domain:</strong> <code><?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?></code></li>
-                                <li><strong>Return URL:</strong> <code><?php echo esc_url(home_url('/')); ?></code></li>
-                                <li>Note: The Return URL in Apple Developer Console MUST exactly match the Redirect URI above</li>
+                                <li><strong>Domains and Subdomains:</strong> Add <code><?php echo esc_html(parse_url(home_url(), PHP_URL_HOST)); ?></code></li>
+                                <li>Click the <strong>+</strong> button next to "Return URLs"</li>
+                                <li><strong>Return URLs:</strong> Add <code><?php echo esc_url(home_url('/')); ?></code></li>
+                                <li>⚠️ <strong>MUST include https:// and trailing slash</strong></li>
                             </ul>
                         </li>
-                        <li>Create a Private Key and download the .p8 file</li>
-                        <li>Enter your Team ID, Key ID, Client ID (Services ID), Private Key, and Redirect URI in the settings above</li>
-                        <li>Make sure the Redirect URI field matches exactly what you entered in Apple Developer Console</li>
+                        <li>Click <strong>Next</strong>, then <strong>Done</strong>, then <strong>Continue</strong>, then <strong>Save</strong></li>
+                        <li>Create a Private Key:
+                            <ul>
+                                <li>Go to <strong>Keys</strong> section</li>
+                                <li>Click <strong>+</strong> to create a new key</li>
+                                <li>Check <strong>"Sign in with Apple"</strong></li>
+                                <li>Click <strong>Configure</strong> and select your App ID</li>
+                                <li>Download the .p8 file and copy its contents to the Private Key field above</li>
+                            </ul>
+                        </li>
+                        <li>Back in WordPress, fill in all the fields in the Apple Sign-In tab</li>
+                        <li><strong>Make sure the Redirect URI field exactly matches the Return URL in Apple Developer Console</strong></li>
+                        <li>Click "Debug Apple Configuration" button to verify your setup</li>
                     </ol>
+
+                    <div style="background: #fff3cd; padding: 15px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                        <strong>⚠️ Common Issues:</strong>
+                        <ul style="margin: 10px 0;">
+                            <li><strong>"Invalid web redirect url"</strong> - The Return URL in Apple Developer Console doesn't match the Redirect URI in WordPress</li>
+                            <li><strong>"Invalid client"</strong> - The Client ID (Service ID) is incorrect</li>
+                            <li><strong>Buttons not showing</strong> - Apple Sign-In is not enabled in Settings</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="card" style="margin-top: 20px;">
