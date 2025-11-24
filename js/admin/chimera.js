@@ -153,6 +153,7 @@ jQuery(document).ready(function($) {
 						$.ajax({
 							type: 'POST',
 							url: hsBookAuditor.ajaxurl,
+							timeout: 30000, // 30 second timeout
 							data: {
 								action: 'hs_save_book_field',
 								nonce: hsBookAuditor.nonce,
@@ -264,6 +265,7 @@ jQuery(document).ready(function($) {
 		$.ajax({
 			type: 'POST',
 			url: hsBookAuditor.ajaxurl,
+			timeout: 30000, // 30 second timeout
 			data: {
 				action: 'hs_save_book_field',
 				nonce: hsBookAuditor.nonce,
@@ -314,6 +316,7 @@ jQuery(document).ready(function($) {
 		$.ajax({
 			type: 'POST',
 			url: hsBookAuditor.ajaxurl,
+			timeout: 30000, // 30 second timeout
 			data: {
 				action: 'hs_mark_book_audited',
 				nonce: hsBookAuditor.nonce,
@@ -531,6 +534,7 @@ jQuery(document).ready(function($) {
 		$.ajax({
 			type: 'POST',
 			url: hsBookAuditor.ajaxurl,
+			timeout: 30000, // 30 second timeout
 			data: {
 				action: 'hs_delete_book',
 				nonce: hsBookAuditor.nonce,

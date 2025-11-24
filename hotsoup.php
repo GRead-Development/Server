@@ -985,6 +985,29 @@ function hs_book_details_page_styles()
 }
 add_action('wp_head', 'hs_book_details_page_styles');
 
+/**
+ * Background task to download book cover images
+ * This runs asynchronously to avoid blocking AJAX requests
+ */
+function hs_download_book_cover($post_id, $image_url, $post_title) {
+    // Add timeout filter for image downloads
+    add_filter('http_request_timeout', function() { return 10; });
+
+    require_once(ABSPATH . 'wp-admin/includes/media.php');
+    require_once(ABSPATH . 'wp-admin/includes/file.php');
+    require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+    $attachment_id = media_sideload_image($image_url, $post_id, $post_title, 'id');
+
+    if (!is_wp_error($attachment_id)) {
+        set_post_thumbnail($post_id, $attachment_id);
+    }
+
+    // Remove the timeout filter
+    remove_filter('http_request_timeout', function() { return 10; });
+}
+add_action('hs_download_book_cover', 'hs_download_book_cover', 10, 3);
+
 
 function hs_book_tags_activate()
 {

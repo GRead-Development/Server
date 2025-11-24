@@ -11,6 +11,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_add_book',
                 nonce: hs_ajax.nonce,
@@ -48,6 +49,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_remove_book',
                 nonce: hs_ajax.nonce,
@@ -96,6 +98,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_update_progress',
                 nonce: hs_ajax.nonce,
@@ -183,6 +186,7 @@ jQuery(document).ready(function($) {
 		$.ajax({
 			url: hs_ajax.ajax_url,
 			type: 'POST',
+			timeout: 30000, // 30 second timeout
 			data:
 			{
 				action: 'hs_submit_review',
@@ -260,6 +264,7 @@ jQuery(document).ready(function($) {
             $.ajax({
                 url: hs_ajax.ajax_url,
                 type: 'POST',
+                timeout: 30000, // 30 second timeout
                 data: {
                     action: 'hs_submit_report',
                     nonce: hs_ajax.nonce,
@@ -304,6 +309,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_block_user',
                 nonce: hs_ajax.nonce,
@@ -339,6 +345,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_unblock_user',
                 nonce: hs_ajax.nonce,
@@ -403,6 +410,7 @@ jQuery(document).ready(function($) {
         $.ajax({
             url: hs_ajax.ajax_url,
             type: 'POST',
+            timeout: 30000, // 30 second timeout
             data: {
                 action: 'hs_report_user',
                 nonce: hs_ajax.nonce,

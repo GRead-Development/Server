@@ -9,11 +9,18 @@ if (!defined('ABSPATH'))
 }
 
 
-function hs_update_user_stats($user_id)
+function hs_update_user_stats($user_id, $force = false)
 {
 	if(!$user_id)
 	{
 		return;
+	}
+
+	// Throttle stats updates to avoid expensive queries on every progress update
+	// Only update stats once every 10 minutes unless forced
+	$throttle_key = 'hs_stats_throttle_' . $user_id;
+	if (!$force && get_transient($throttle_key)) {
+		return; // Skip update, too soon since last calculation
 	}
 
 	global $wpdb;
@@ -30,6 +37,7 @@ function hs_update_user_stats($user_id)
 
 
 	// Calculate how many books a user has completed
+	// This query is expensive due to JOIN with postmeta, so we throttle it
 	$completed_books_count = $wpdb -> get_var($wpdb -> prepare(
 		"SELECT COUNT(ub.book_id)
 		FROM $user_books_table AS ub
@@ -43,6 +51,9 @@ function hs_update_user_stats($user_id)
 	update_user_meta($user_id, 'hs_completed_books_count', intval($completed_books_count));
 
 	delete_transient('hs_user_stats_' . $user_id);
+
+	// Set throttle to prevent recalculation for 10 minutes
+	set_transient($throttle_key, true, 10 * MINUTE_IN_SECONDS);
 
 	do_action('hs_stats_updated', $user_id);
 }

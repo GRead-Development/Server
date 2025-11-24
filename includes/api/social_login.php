@@ -351,7 +351,9 @@ function gread_verify_google_token($credential) {
     $client_id = get_option('hs_google_client_id', '');
 
     // Verify with Google's token verification endpoint
-    $response = wp_remote_get('https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($credential));
+    $response = wp_remote_get('https://oauth2.googleapis.com/tokeninfo?id_token=' . urlencode($credential), array(
+        'timeout' => 10
+    ));
 
     if (is_wp_error($response)) {
         return false;

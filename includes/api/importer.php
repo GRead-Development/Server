@@ -197,28 +197,14 @@ function gread_create_book_post($book_data, $isbn) {
     }
 
     // Handle cover image
+    // Schedule image download as a background task to avoid blocking the AJAX request
     if (isset($book_data['cover']['large'])) {
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-
-        $image_url = $book_data['cover']['large'];
-        $attachment_id = media_sideload_image($image_url, $post_id, $title, 'id');
-
-        if (!is_wp_error($attachment_id)) {
-            set_post_thumbnail($post_id, $attachment_id);
-        }
+        wp_schedule_single_event(time() + 5, 'hs_download_book_cover', array(
+            'post_id' => $post_id,
+            'image_url' => $book_data['cover']['large'],
+            'post_title' => $title
+        ));
     }
-
-    // Update user statistics
-    /*
-    $user_id = get_current_user_id();
-    if ($user_id && function_exists('hs_increment_books_added')) {
-        hs_increment_books_added($user_id);
-        if (function_exists('hs_update_user_stats')) {
-            hs_update_user_stats($user_id);
-        }
-    }*/
 
 	if (function_exists('hs_search_add_to_index'))
 	{

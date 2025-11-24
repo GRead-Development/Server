@@ -236,7 +236,8 @@ function import_by_isbn($isbn)
 
 	// Wrap the headers in the required 'args' array for wp_remote_get
 	$args = array(
-		'headers' => $http_headers
+		'headers' => $http_headers,
+		'timeout' => 15
 	);
 
 	// Pass the arguments array
@@ -308,20 +309,14 @@ function import_by_isbn($isbn)
         update_field('nop', intval($book_info['number_of_pages']), $post_id);
     }
 
+    // Schedule image download as a background task to avoid blocking the AJAX request
     if (isset($book_info['cover']['large']))
     {
-        require_once(ABSPATH . 'wp-admin/includes/media.php');
-        require_once(ABSPATH . 'wp-admin/includes/file.php');
-        require_once(ABSPATH . 'wp-admin/includes/image.php');
-
-
-        $image_url = $book_info['cover']['large'];
-        $attachment_id = media_sideload_image($image_url, $post_id, $post_title, 'id');
-
-        if (!is_wp_error($attachment_id))
-        {
-            set_post_thumbnail($post_id, $attachment_id);
-        }
+        wp_schedule_single_event(time() + 5, 'hs_download_book_cover', array(
+            'post_id' => $post_id,
+            'image_url' => $book_info['cover']['large'],
+            'post_title' => $post_title
+        ));
     }
 
     $author_id = get_current_user_id();
