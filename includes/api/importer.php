@@ -211,13 +211,14 @@ function gread_create_book_post($book_data, $isbn) {
     }
 
     // Update user statistics
+    /*
     $user_id = get_current_user_id();
     if ($user_id && function_exists('hs_increment_books_added')) {
         hs_increment_books_added($user_id);
         if (function_exists('hs_update_user_stats')) {
             hs_update_user_stats($user_id);
         }
-    }
+    }*/
 
 	if (function_exists('hs_search_add_to_index'))
 	{
