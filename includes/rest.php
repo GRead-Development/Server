@@ -489,30 +489,65 @@ function gread_get_user_library($request) {
     if ($wpdb->last_error) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
-    
+
+    if (empty($user_books)) {
+        return rest_ensure_response(array());
+    }
+
+    // PERFORMANCE FIX: Batch query all book data instead of N+1 queries
+    // Get all book IDs
+    $book_ids = array_map(function($ub) { return $ub->book_id; }, $user_books);
+    $book_ids_placeholder = implode(',', array_fill(0, count($book_ids), '%d'));
+
+    // Batch query: Get all posts and metadata in ONE query
+    $books_data = $wpdb->get_results($wpdb->prepare(
+        "SELECT
+            p.ID,
+            p.post_title,
+            p.post_content,
+            p.post_name,
+            p.post_status,
+            MAX(CASE WHEN pm.meta_key = 'book_author' THEN pm.meta_value END) as author,
+            MAX(CASE WHEN pm.meta_key = 'book_isbn' THEN pm.meta_value END) as isbn,
+            MAX(CASE WHEN pm.meta_key = 'nop' THEN pm.meta_value END) as page_count
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            AND pm.meta_key IN ('book_author', 'book_isbn', 'nop')
+        WHERE p.ID IN ($book_ids_placeholder)
+            AND p.post_type = 'book'
+        GROUP BY p.ID",
+        ...$book_ids
+    ));
+
+    // Index by ID for quick lookup
+    $books_by_id = array();
+    foreach ($books_data as $book) {
+        $books_by_id[$book->ID] = $book;
+    }
+
+    // Build result array using cached data
     $result = array();
-    
     foreach ($user_books as $user_book) {
         $book_id = $user_book->book_id;
-        $book = get_post($book_id);
-        
-        if (!$book) continue;
-        
+        $book_data = isset($books_by_id[$book_id]) ? $books_by_id[$book_id] : null;
+
+        if (!$book_data) continue;
+
         $result[] = array(
             'id' => intval($user_book->id),
             'book' => array(
                 'id' => intval($book_id),
-                'title' => get_the_title($book_id),
-                'author' => get_post_meta($book_id, 'book_author', true),
-                'isbn' => get_post_meta($book_id, 'book_isbn', true),
-                'page_count' => intval(get_post_meta($book_id, 'nop', true)),
-                'content' => get_the_content(null, false, $book)
+                'title' => $book_data->post_title,
+                'author' => $book_data->author,
+                'isbn' => $book_data->isbn,
+                'page_count' => intval($book_data->page_count),
+                'content' => $book_data->post_content
             ),
             'current_page' => intval($user_book->current_page),
             'status' => $user_book->status
         );
     }
-    
+
     return rest_ensure_response($result);
 }
 
@@ -661,25 +696,57 @@ function gread_search_books($request) {
     
     $books_query = new WP_Query($args);
     $results = array();
-    
+
     if ($books_query->have_posts()) {
-        while ($books_query->have_posts()) {
-            $books_query->the_post();
-            $book_id = get_the_ID();
-            
-            $results[] = array(
-                'id' => $book_id,
-                'title' => get_the_title(),
-                'author' => get_post_meta($book_id, 'book_author', true),
-                'isbn' => get_post_meta($book_id, 'book_isbn', true),
-                'page_count' => intval(get_post_meta($book_id, 'nop', true)),
-                'content' => get_the_content(),
-                'permalink' => get_permalink($book_id)
-            );
+        // PERFORMANCE FIX: Batch query all metadata instead of N+1 queries
+        global $wpdb;
+
+        // Get all book IDs from query
+        $book_ids = wp_list_pluck($books_query->posts, 'ID');
+
+        if (!empty($book_ids)) {
+            $book_ids_placeholder = implode(',', array_fill(0, count($book_ids), '%d'));
+
+            // Batch query: Get all metadata in ONE query
+            $books_meta = $wpdb->get_results($wpdb->prepare(
+                "SELECT
+                    post_id,
+                    MAX(CASE WHEN meta_key = 'book_author' THEN meta_value END) as author,
+                    MAX(CASE WHEN meta_key = 'book_isbn' THEN meta_value END) as isbn,
+                    MAX(CASE WHEN meta_key = 'nop' THEN meta_value END) as page_count
+                FROM {$wpdb->postmeta}
+                WHERE post_id IN ($book_ids_placeholder)
+                    AND meta_key IN ('book_author', 'book_isbn', 'nop')
+                GROUP BY post_id",
+                ...$book_ids
+            ));
+
+            // Index by post ID
+            $meta_by_id = array();
+            foreach ($books_meta as $meta) {
+                $meta_by_id[$meta->post_id] = $meta;
+            }
+
+            // Build results using cached metadata
+            while ($books_query->have_posts()) {
+                $books_query->the_post();
+                $book_id = get_the_ID();
+                $meta = isset($meta_by_id[$book_id]) ? $meta_by_id[$book_id] : null;
+
+                $results[] = array(
+                    'id' => $book_id,
+                    'title' => get_the_title(),
+                    'author' => $meta ? $meta->author : '',
+                    'isbn' => $meta ? $meta->isbn : '',
+                    'page_count' => $meta ? intval($meta->page_count) : 0,
+                    'content' => get_the_content(),
+                    'permalink' => get_permalink($book_id)
+                );
+            }
+            wp_reset_postdata();
         }
-        wp_reset_postdata();
     }
-    
+
     return rest_ensure_response($results);
 }
 

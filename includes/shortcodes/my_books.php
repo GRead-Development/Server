@@ -58,40 +58,68 @@ function hs_my_books_shortcode($atts)
         return '<p>You have not added any books to your library. Browse the book database and add what books you are reading to your library. If you cannot find the book you are reading, submit it to the database and get some rewards!</p>';
     }
 
-    // 2. Collect All Book Data into a single array
+    // 2. PERFORMANCE FIX: Batch query all book data instead of N+1 queries
+    // Get all book IDs
+    $book_ids = array_map(function($entry) { return $entry->book_id; }, $my_book_entries);
+    $book_ids_placeholder = implode(',', array_fill(0, count($book_ids), '%d'));
+
+    // Batch query: Get all posts and metadata in ONE query
+    $books_data = $wpdb->get_results($wpdb->prepare(
+        "SELECT
+            p.ID,
+            p.post_title,
+            p.post_name,
+            p.post_status,
+            MAX(CASE WHEN pm.meta_key = 'book_author' THEN pm.meta_value END) as author,
+            MAX(CASE WHEN pm.meta_key = 'nop' THEN pm.meta_value END) as total_pages
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+            AND pm.meta_key IN ('book_author', 'nop')
+        WHERE p.ID IN ($book_ids_placeholder)
+        GROUP BY p.ID",
+        ...$book_ids
+    ));
+
+    // Index by ID for quick lookup
+    $books_by_id = array();
+    foreach ($books_data as $book) {
+        $books_by_id[$book->ID] = $book;
+    }
+
+    // 3. Collect All Book Data into a single array
     $all_books_data = [];
     foreach ($my_book_entries as $book_entry) {
-        $book = get_post($book_entry->book_id);
-        if ($book) {
-            $total_pages = (int)get_post_meta($book_entry->book_id, 'nop', true);
+        // Get book data from cached array
+        $book_data = isset($books_by_id[$book_entry->book_id]) ? $books_by_id[$book_entry->book_id] : null;
+
+        if ($book_data) {
+            $total_pages = (int)$book_data->total_pages;
             $current_page = (int)$book_entry->current_page;
             $progress = ($total_pages > 0) ? round(($current_page / $total_pages) * 100) : 0;
             $is_completed = ($total_pages > 0 && $current_page >= $total_pages);
+            $author = $book_data->author;
 
-            // Assuming the author is the post author for simplicity; adjust meta key if needed
-            $author = get_post_meta($book_entry->book_id, 'book_author', true);
-
-		// Check if the user has reviewed the book
-		$has_review = isset($user_reviews[$book_entry -> book_id]);
-		$user_rating = $has_review ? $user_reviews[$book_entry -> book_id] -> rating : null;
-		$user_review_text = $has_review ? $user_reviews[$book_entry -> book_id] -> review_text : '';
+            // Check if the user has reviewed the book
+            $has_review = isset($user_reviews[$book_entry->book_id]);
+            $user_rating = $has_review ? $user_reviews[$book_entry->book_id]->rating : null;
+            $user_review_text = $has_review ? $user_reviews[$book_entry->book_id]->review_text : '';
 
             $all_books_data[] = [
                 'entry' => $book_entry,
-                'post' => $book,
+                'book_data' => $book_data,
                 'total_pages' => $total_pages,
                 'current_page' => $current_page,
                 'progress' => $progress,
                 'is_completed' => $is_completed,
                 'author' => $author,
-		'has_review' => $has_review,
-		'user_rating' => $user_rating,
-		'user_review_text' => $user_review_text
+                'has_review' => $has_review,
+                'user_rating' => $user_rating,
+                'user_review_text' => $user_review_text
             ];
         }
     }
 
-    // 3. Implement Sorting Logic (custom comparison function)
+    // 4. Implement Sorting Logic (custom comparison function)
     usort($all_books_data, function($a, $b) use ($sort_by, $sort_order) {
         $a_val = '';
         $b_val = '';
@@ -107,8 +135,8 @@ function hs_my_books_shortcode($atts)
                 break;
             case 'title':
             default:
-                $a_val = $a['post']->post_title;
-                $b_val = $b['post']->post_title;
+                $a_val = $a['book_data']->post_title;
+                $b_val = $b['book_data']->post_title;
         }
 
         // String comparison for title/author
@@ -133,30 +161,27 @@ function hs_my_books_shortcode($atts)
     $completed_count = 0;
     $main_list_html = ''; // For combined list when filtering is off
 
-    // 4. Generate HTML based on the sorted list and current filter settings
+    // 5. Generate HTML based on the sorted list and current filter settings
     foreach ($all_books_data as $data) {
         $book_entry = $data['entry'];
-        $book = $data['post'];
+        $book_data = $data['book_data'];
         $total_pages = $data['total_pages'];
         $current_page = $data['current_page'];
         $progress = $data['progress'];
         $is_completed = $data['is_completed'];
         $author = $data['author'];
-	$has_review = $data['has_review'];
-	$user_rating = $data['user_rating'];
-	$user_review_text = $data['user_review_text'];
+        $has_review = $data['has_review'];
+        $user_rating = $data['user_rating'];
+        $user_review_text = $data['user_review_text'];
 
-	error_log("Book ID {$book_entry -> book_id}: current_page={$current_page}, total_pages={$total_pages}, is_completed=" . ($is_completed ? 'YES' : 'NO'));
+        error_log("Book ID {$book_entry->book_id}: current_page={$current_page}, total_pages={$total_pages}, is_completed=" . ($is_completed ? 'YES' : 'NO'));
 
         $li_class = $is_completed ? 'hs-my-book completed' : 'hs-my-book';
         $bar_class = $is_completed ? 'hs-progress-bar golden' : 'hs-progress-bar';
 
-	// Data-reviewed attribute
-	$book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry -> book_id) . '" date-reviewed="' . ($has_review ? 'true' : 'false') . '">';
-
         // HTML for a single book item
-        $book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '">';
-        $book_html .= '<h3><a style="color: #0056b3;" href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a></h3>';
+        $book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '" data-reviewed="' . ($has_review ? 'true' : 'false') . '">';
+        $book_html .= '<h3><a style="color: #0056b3;" href="' . esc_url(get_permalink($book_data->ID)) . '">' . esc_html($book_data->post_title) . '</a></h3>';
         $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>'; // Display Author
         $book_html .= '<div class="hs-progress-bar-container"><div class="' . esc_attr($bar_class) . '" style="width: ' . esc_attr($progress) . '%;"></div></div>';
         $book_html .= '<span>Progress: ' . esc_html($progress) . '% (' . esc_html($current_page) . ' / ' . esc_html($total_pages) . ' pages)</span>';
@@ -171,7 +196,7 @@ function hs_my_books_shortcode($atts)
 
         $book_html .= '<div class="hs-button-group">';
         $book_html .= '<button class="hs-button hs-remove-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Remove</button>';
-        $book_html .= '<button class="hs-button hs-notes-button" data-book-id="' . esc_attr($book_entry->book_id) . '" data-book-title="' . esc_attr($book->post_title) . '">View & Manage Notes</button>';
+        $book_html .= '<button class="hs-button hs-notes-button" data-book-id="' . esc_attr($book_entry->book_id) . '" data-book-title="' . esc_attr($book_data->post_title) . '">View & Manage Notes</button>';
         $book_html .= '</div>';
 
 
