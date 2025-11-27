@@ -86,6 +86,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin/authors_series_manager.
 require_once plugin_dir_path(__FILE__) . 'includes/authors_series_display.php';
 // Database repair utilities
 require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
+// Performance monitoring
+require_once plugin_dir_path(__FILE__) . 'includes/performance-monitor.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/performance-dashboard.php';
 
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );
@@ -98,6 +101,7 @@ register_activation_hook(__FILE__, 'hs_book_tags_create_table');
 register_activation_hook(__FILE__, 'hs_book_notes_activate');
 register_activation_hook(__FILE__, 'hs_authors_series_activate');
 register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
+register_activation_hook(__FILE__, 'hs_performance_monitor_create_table');
 
 // On activation, set up the reviews table
 function hs_reviews_activate()
