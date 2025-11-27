@@ -28,14 +28,13 @@ class HS_Performance_Monitor {
         $this->enabled = get_option('hs_performance_monitor_enabled', false);
 
         if ($this->enabled) {
+            // Set request start time immediately
+            $this->request_start = microtime(true);
             $this->init_monitoring();
         }
     }
 
     private function init_monitoring() {
-        // Track request start time - use plugins_loaded which fires early
-        add_action('plugins_loaded', array($this, 'track_request_start'), 1);
-
         // Log request end
         add_action('shutdown', array($this, 'log_request_metrics'), 999);
 
@@ -44,10 +43,6 @@ class HS_Performance_Monitor {
             wp_schedule_event(time(), 'daily', 'hs_cleanup_performance_logs');
         }
         add_action('hs_cleanup_performance_logs', array($this, 'cleanup_old_logs'));
-    }
-
-    public function track_request_start() {
-        $this->request_start = microtime(true);
     }
 
     public function log_request_metrics() {
@@ -59,7 +54,14 @@ class HS_Performance_Monitor {
             return;
         }
 
+        // Calculate total time - add safety check
         $total_time = microtime(true) - $this->request_start;
+
+        // If request_start wasn't set or time is invalid, skip logging
+        if ($this->request_start <= 0 || $total_time < 0 || $total_time > 60) {
+            error_log('HS Performance Monitor: Invalid time calculation, skipping log');
+            return;
+        }
 
         // Get query count and time from WordPress
         $query_count = 0;
