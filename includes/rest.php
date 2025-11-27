@@ -732,20 +732,55 @@ function gread_get_activity_feed($request) {
     }
     
     $activities = bp_activity_get($activity_args);
-    
+
     $response = array();
-    
+
     if (!empty($activities['activities'])) {
+        // PERFORMANCE FIX: Batch query all user data instead of N+1 queries
+        global $wpdb;
+
+        // Get all unique user IDs
+        $user_ids = array_unique(array_map(function($activity) {
+            return $activity->user_id;
+        }, $activities['activities']));
+
+        // Remove excluded users
+        $user_ids = array_diff($user_ids, $excluded_users);
+
+        if (empty($user_ids)) {
+            return rest_ensure_response(array(
+                'activities' => array(),
+                'total' => 0,
+                'has_more' => false
+            ));
+        }
+
+        // Batch query: Get all users in one query
+        $user_ids_placeholder = implode(',', array_fill(0, count($user_ids), '%d'));
+        $users_data = $wpdb->get_results($wpdb->prepare(
+            "SELECT ID, display_name, user_login, user_email
+            FROM {$wpdb->users}
+            WHERE ID IN ($user_ids_placeholder)",
+            ...$user_ids
+        ));
+
+        // Index users by ID for quick lookup
+        $users_by_id = array();
+        foreach ($users_data as $user) {
+            $users_by_id[$user->ID] = $user;
+        }
+
+        // Now loop through activities with cached user data
         foreach ($activities['activities'] as $activity) {
             // Skip activities from blocked or muted users
             if (in_array($activity->user_id, $excluded_users)) {
                 continue;
             }
-            
-            // Get user information
-            $user = get_userdata($activity->user_id);
+
+            // Get user information from cached data
+            $user = isset($users_by_id[$activity->user_id]) ? $users_by_id[$activity->user_id] : null;
             $user_name = $user ? $user->display_name : 'Unknown User';
-            
+
             // Get avatar URL
             $avatar_url = '';
             if (function_exists('bp_core_fetch_avatar')) {
@@ -756,18 +791,18 @@ function gread_get_activity_feed($request) {
                 );
                 $avatar_url = bp_core_fetch_avatar($avatar_args);
             }
-            
+
             // Check if current user has blocked this activity's author (bidirectional check)
          /*   $is_blocked = false;
             if ($current_user_id && function_exists('hs_check_block_status')) {
                 $is_blocked = hs_check_block_status($current_user_id, $activity->user_id);
             }
-            
+
             // Skip if blocked
             if ($is_blocked) {
                 continue;
             }
-           */ 
+           */
             $item = array(
                 'id' => intval($activity->id),
                 'user_id' => intval($activity->user_id),
@@ -777,10 +812,10 @@ function gread_get_activity_feed($request) {
                 'action' => $activity->action,
                 'type' => $activity->type,
                 'date' => $activity->date_recorded,
-                'date_formatted' => function_exists('bp_core_time_since') ? 
+                'date_formatted' => function_exists('bp_core_time_since') ?
                     bp_core_time_since($activity->date_recorded) : $activity->date_recorded
             );
-            
+
             $response[] = $item;
         }
     }
