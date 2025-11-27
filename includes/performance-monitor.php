@@ -14,8 +14,6 @@ if (!defined('ABSPATH')) {
 
 class HS_Performance_Monitor {
     private static $instance = null;
-    private $queries = array();
-    private $start_time = 0;
     private $request_start = 0;
     private $enabled = false;
 
@@ -35,11 +33,8 @@ class HS_Performance_Monitor {
     }
 
     private function init_monitoring() {
-        // Track request start time
-        add_action('init', array($this, 'track_request_start'), 1);
-
-        // Track queries
-        add_filter('query', array($this, 'track_query'));
+        // Track request start time - use plugins_loaded which fires early
+        add_action('plugins_loaded', array($this, 'track_request_start'), 1);
 
         // Log request end
         add_action('shutdown', array($this, 'log_request_metrics'), 999);
@@ -53,71 +48,48 @@ class HS_Performance_Monitor {
 
     public function track_request_start() {
         $this->request_start = microtime(true);
-        $this->queries = array();
-    }
-
-    public function track_query($query) {
-        global $wpdb;
-
-        $start_time = microtime(true);
-
-        // Store query info
-        $this->queries[] = array(
-            'query' => $query,
-            'time' => 0, // Will be updated after execution
-            'backtrace' => $this->get_clean_backtrace(),
-            'timestamp' => $start_time
-        );
-
-        return $query;
-    }
-
-    private function get_clean_backtrace() {
-        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
-        $relevant_trace = array();
-
-        foreach ($backtrace as $trace) {
-            // Skip WordPress core files
-            if (isset($trace['file']) &&
-                (strpos($trace['file'], 'wp-includes') !== false ||
-                 strpos($trace['file'], 'wp-admin') !== false)) {
-                continue;
-            }
-
-            if (isset($trace['file'])) {
-                $relevant_trace[] = array(
-                    'file' => str_replace(WP_PLUGIN_DIR, '', $trace['file']),
-                    'line' => isset($trace['line']) ? $trace['line'] : 0,
-                    'function' => isset($trace['function']) ? $trace['function'] : ''
-                );
-            }
-        }
-
-        return array_slice($relevant_trace, 0, 3);
     }
 
     public function log_request_metrics() {
         global $wpdb;
 
-        if (empty($this->queries)) {
+        // Skip if this is an admin-ajax call from our own dashboard
+        if (defined('DOING_AJAX') && isset($_REQUEST['action']) &&
+            strpos($_REQUEST['action'], 'hs_performance') !== false) {
             return;
         }
 
         $total_time = microtime(true) - $this->request_start;
-        $query_count = count($this->queries);
 
-        // Get actual query times from WordPress
+        // Get query count and time from WordPress
+        $query_count = 0;
+        $total_query_time = 0;
+        $n_plus_one_patterns = array();
+        $slow_queries = array();
+
         if (defined('SAVEQUERIES') && SAVEQUERIES && !empty($wpdb->queries)) {
-            $total_query_time = 0;
+            $query_count = count($wpdb->queries);
+
+            // Calculate total query time and find slow queries
             foreach ($wpdb->queries as $query_data) {
                 $total_query_time += $query_data[1];
-            }
-        } else {
-            $total_query_time = 0;
-        }
 
-        // Detect N+1 patterns
-        $n_plus_one_patterns = $this->detect_n_plus_one();
+                // Track slow queries (>100ms)
+                if ($query_data[1] > 0.1) {
+                    $slow_queries[] = array(
+                        'query' => $query_data[0],
+                        'time' => round($query_data[1], 4),
+                        'backtrace' => $query_data[2] ?? ''
+                    );
+                }
+            }
+
+            // Detect N+1 patterns
+            $n_plus_one_patterns = $this->detect_n_plus_one($wpdb->queries);
+        } else {
+            // Even without SAVEQUERIES, count queries
+            $query_count = $wpdb->num_queries;
+        }
 
         // Determine request type
         $request_type = $this->get_request_type();
@@ -136,17 +108,22 @@ class HS_Performance_Monitor {
             'php_time' => round($total_time - $total_query_time, 4),
             'memory_usage' => memory_get_peak_usage(true),
             'n_plus_one_count' => count($n_plus_one_patterns),
-            'slow_queries' => $this->get_slow_queries(),
+            'slow_queries' => $slow_queries,
             'user_id' => get_current_user_id(),
-            'url' => $_SERVER['REQUEST_URI'] ?? '',
+            'url' => isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '',
         );
 
         // Store in database
-        $this->save_metrics($metrics);
+        $saved = $this->save_metrics($metrics);
 
         // If in debug mode, output to console
         if (defined('WP_DEBUG') && WP_DEBUG && current_user_can('manage_options')) {
             $this->output_debug_info($metrics, $n_plus_one_patterns);
+        }
+
+        // Log to error log if saving failed
+        if (!$saved && defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('HS Performance Monitor: Failed to save metrics');
         }
     }
 
@@ -164,19 +141,17 @@ class HS_Performance_Monitor {
 
     private function get_endpoint_info() {
         if (defined('REST_REQUEST') && REST_REQUEST) {
-            return $_SERVER['REQUEST_URI'] ?? 'unknown';
+            return isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : 'unknown';
         } elseif (defined('DOING_AJAX') && DOING_AJAX) {
-            return $_POST['action'] ?? $_GET['action'] ?? 'unknown';
+            return isset($_POST['action']) ? $_POST['action'] : (isset($_GET['action']) ? $_GET['action'] : 'unknown');
         } else {
             global $wp;
-            return home_url($wp->request);
+            return isset($wp->request) ? home_url($wp->request) : (isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : 'unknown');
         }
     }
 
-    private function detect_n_plus_one() {
-        global $wpdb;
-
-        if (!defined('SAVEQUERIES') || !SAVEQUERIES || empty($wpdb->queries)) {
+    private function detect_n_plus_one($queries) {
+        if (empty($queries)) {
             return array();
         }
 
@@ -184,19 +159,20 @@ class HS_Performance_Monitor {
         $query_patterns = array();
 
         // Group similar queries
-        foreach ($wpdb->queries as $query_data) {
+        foreach ($queries as $query_data) {
             $query = $query_data[0];
 
-            // Normalize query by removing specific IDs
+            // Normalize query by removing specific IDs and values
             $normalized = preg_replace('/\d+/', 'N', $query);
             $normalized = preg_replace('/\'[^\']*\'/', "'X'", $normalized);
+            $normalized = preg_replace('/\"[^\"]*\"/', '"X"', $normalized);
 
             if (!isset($query_patterns[$normalized])) {
                 $query_patterns[$normalized] = array(
                     'count' => 0,
                     'example' => $query,
                     'total_time' => 0,
-                    'backtrace' => $query_data[2] ?? ''
+                    'backtrace' => isset($query_data[2]) ? $query_data[2] : ''
                 );
             }
 
@@ -225,40 +201,28 @@ class HS_Performance_Monitor {
         return $patterns;
     }
 
-    private function get_slow_queries() {
-        global $wpdb;
-
-        if (!defined('SAVEQUERIES') || !SAVEQUERIES || empty($wpdb->queries)) {
-            return array();
-        }
-
-        $slow_queries = array();
-        $threshold = 0.1; // 100ms
-
-        foreach ($wpdb->queries as $query_data) {
-            if ($query_data[1] > $threshold) {
-                $slow_queries[] = array(
-                    'query' => $query_data[0],
-                    'time' => round($query_data[1], 4),
-                    'backtrace' => $query_data[2] ?? ''
-                );
-            }
-        }
-
-        // Sort by time (slowest first)
-        usort($slow_queries, function($a, $b) {
-            return $b['time'] <=> $a['time'];
-        });
-
-        return array_slice($slow_queries, 0, 10);
-    }
-
     private function save_metrics($metrics) {
         global $wpdb;
 
         $table_name = $wpdb->prefix . 'hs_performance_logs';
 
-        $wpdb->insert(
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+        if (!$table_exists) {
+            // Try to create it
+            hs_performance_monitor_create_table();
+
+            // Check again
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+            if (!$table_exists) {
+                error_log('HS Performance Monitor: Table does not exist and could not be created');
+                return false;
+            }
+        }
+
+        $result = $wpdb->insert(
             $table_name,
             array(
                 'timestamp' => $metrics['timestamp'],
@@ -276,10 +240,17 @@ class HS_Performance_Monitor {
             ),
             array('%s', '%s', '%s', '%d', '%f', '%f', '%f', '%d', '%d', '%s', '%d', '%s')
         );
+
+        if ($result === false) {
+            error_log('HS Performance Monitor: Insert failed - ' . $wpdb->last_error);
+            return false;
+        }
+
+        return true;
     }
 
     private function output_debug_info($metrics, $n_plus_one_patterns) {
-        echo "<!-- \n";
+        echo "\n<!-- \n";
         echo "=== HotSoup Performance Monitor ===\n";
         echo "Request Type: {$metrics['request_type']}\n";
         echo "Endpoint: {$metrics['endpoint']}\n";
@@ -331,6 +302,13 @@ class HS_Performance_Monitor {
 
         $table_name = $wpdb->prefix . 'hs_performance_logs';
 
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+        if (!$table_exists) {
+            return null;
+        }
+
         // Convert timeframe to SQL
         $interval_map = array(
             '1 hour' => 'INTERVAL 1 HOUR',
@@ -339,7 +317,7 @@ class HS_Performance_Monitor {
             '30 days' => 'INTERVAL 30 DAY'
         );
 
-        $interval = $interval_map[$timeframe] ?? 'INTERVAL 1 HOUR';
+        $interval = isset($interval_map[$timeframe]) ? $interval_map[$timeframe] : 'INTERVAL 1 HOUR';
 
         $stats = $wpdb->get_row("
             SELECT
@@ -353,6 +331,10 @@ class HS_Performance_Monitor {
             FROM $table_name
             WHERE timestamp > DATE_SUB(NOW(), $interval)
         ");
+
+        if (!$stats || $stats->total_requests == 0) {
+            return null;
+        }
 
         // Get queries per minute
         $qpm = $wpdb->get_var("
@@ -395,10 +377,26 @@ class HS_Performance_Monitor {
 
         return array(
             'summary' => $stats,
-            'queries_per_minute' => round($qpm, 2),
-            'by_request_type' => $by_type,
-            'slowest_endpoints' => $slowest
+            'queries_per_minute' => round($qpm ? $qpm : 0, 2),
+            'by_request_type' => $by_type ? $by_type : array(),
+            'slowest_endpoints' => $slowest ? $slowest : array()
         );
+    }
+
+    /**
+     * Get total log count for diagnostics
+     */
+    public static function get_log_count() {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'hs_performance_logs';
+
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+        if (!$table_exists) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
     }
 }
 
@@ -411,7 +409,7 @@ function hs_performance_monitor_create_table() {
     $table_name = $wpdb->prefix . 'hs_performance_logs';
     $charset_collate = $wpdb->get_charset_collate();
 
-    $sql = "CREATE TABLE $table_name (
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
         id bigint(20) NOT NULL AUTO_INCREMENT,
         timestamp datetime NOT NULL,
         request_type varchar(20) NOT NULL,
@@ -434,6 +432,15 @@ function hs_performance_monitor_create_table() {
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
+
+    // Verify table was created
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+
+    if ($table_exists) {
+        error_log('HS Performance Monitor: Table created successfully');
+    } else {
+        error_log('HS Performance Monitor: Failed to create table');
+    }
 }
 
 /**
@@ -443,12 +450,12 @@ function hs_performance_monitor_enable() {
     // Create table if it doesn't exist
     hs_performance_monitor_create_table();
 
-    // Enable SAVEQUERIES for detailed tracking
-    if (!defined('SAVEQUERIES')) {
-        define('SAVEQUERIES', true);
-    }
-
     update_option('hs_performance_monitor_enabled', true);
+
+    // Show notice about SAVEQUERIES
+    if (!defined('SAVEQUERIES') || !SAVEQUERIES) {
+        set_transient('hs_performance_savequeries_notice', true, 300);
+    }
 
     // Initialize the monitor
     HS_Performance_Monitor::get_instance();
@@ -470,3 +477,19 @@ add_action('plugins_loaded', function() {
         HS_Performance_Monitor::get_instance();
     }
 }, 1);
+
+/**
+ * Admin notice about SAVEQUERIES
+ */
+add_action('admin_notices', function() {
+    if (get_transient('hs_performance_savequeries_notice')) {
+        ?>
+        <div class="notice notice-warning is-dismissible">
+            <p><strong>Performance Monitor:</strong> For detailed query tracking, add this to your wp-config.php file:</p>
+            <p><code>define('SAVEQUERIES', true);</code></p>
+            <p>Without it, the monitor will only count queries but won't show N+1 patterns or slow queries.</p>
+        </div>
+        <?php
+        delete_transient('hs_performance_savequeries_notice');
+    }
+});

@@ -75,13 +75,21 @@ function hs_performance_dashboard_page() {
         wp_die(__('You do not have sufficient permissions to access this page.'));
     }
 
+    global $wpdb;
+
     $is_enabled = get_option('hs_performance_monitor_enabled', false);
     $retention_days = get_option('hs_performance_logs_retention', 7);
     $timeframe = isset($_GET['timeframe']) ? sanitize_text_field($_GET['timeframe']) : '1 hour';
 
-    // Get stats if monitoring is enabled
+    // Get diagnostics
+    $log_count = HS_Performance_Monitor::get_log_count();
+    $table_name = $wpdb->prefix . 'hs_performance_logs';
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name;
+    $savequeries_enabled = defined('SAVEQUERIES') && SAVEQUERIES;
+
+    // Get stats
     $stats = null;
-    if ($is_enabled) {
+    if ($is_enabled && $table_exists) {
         $stats = HS_Performance_Monitor::get_stats($timeframe);
     }
 
@@ -90,6 +98,59 @@ function hs_performance_dashboard_page() {
         <h1>🚀 HotSoup! Performance Monitor</h1>
 
         <?php settings_errors('hs_performance'); ?>
+
+        <!-- Diagnostics Panel -->
+        <div class="card" style="max-width: 100%; margin-top: 20px; background: #f0f6fc; border-left: 4px solid #2271b1;">
+            <h3>📊 System Status</h3>
+            <table class="form-table">
+                <tr>
+                    <th>Monitoring:</th>
+                    <td>
+                        <?php if ($is_enabled): ?>
+                            <span style="color: #46b450; font-weight: bold;">✓ Enabled</span>
+                        <?php else: ?>
+                            <span style="color: #dc3232; font-weight: bold;">✗ Disabled</span>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Database Table:</th>
+                    <td>
+                        <?php if ($table_exists): ?>
+                            <span style="color: #46b450; font-weight: bold;">✓ Exists</span>
+                        <?php else: ?>
+                            <span style="color: #dc3232; font-weight: bold;">✗ Not Created</span>
+                            <p class="description">The table will be created when you enable monitoring.</p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>SAVEQUERIES:</th>
+                    <td>
+                        <?php if ($savequeries_enabled): ?>
+                            <span style="color: #46b450; font-weight: bold;">✓ Enabled</span> - Full query tracking available
+                        <?php else: ?>
+                            <span style="color: #f0ad4e; font-weight: bold;">⚠ Disabled</span> - Only query counting available
+                            <p class="description">
+                                Add <code>define('SAVEQUERIES', true);</code> to your wp-config.php file<br>
+                                (before the "That's all" comment) to enable N+1 detection and slow query tracking.
+                            </p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Logs Collected:</th>
+                    <td>
+                        <strong><?php echo number_format($log_count); ?></strong> requests tracked
+                        <?php if ($log_count == 0 && $is_enabled): ?>
+                            <p class="description">
+                                No logs yet. Make some requests to your site (visit pages, use the API) and refresh this page.
+                            </p>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <div class="card" style="max-width: 100%; margin-top: 20px;">
             <h2>Monitoring Status</h2>
@@ -314,9 +375,36 @@ function hs_performance_dashboard_page() {
                 <?php endif; ?>
             </div>
         <?php elseif ($is_enabled): ?>
-            <div class="card" style="margin-top: 20px;">
-                <p>Monitoring is active but no data has been collected yet.</p>
-                <p>Make some requests to your site to start seeing metrics here.</p>
+            <div class="card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                <h3>⏳ Waiting for Data...</h3>
+                <p><strong>Monitoring is active!</strong> Data collection has started.</p>
+
+                <?php if ($log_count == 0): ?>
+                    <p>No requests have been logged yet. To start seeing data:</p>
+                    <ol>
+                        <li>Visit your site's homepage</li>
+                        <li>Browse a few pages</li>
+                        <li>Use the search feature</li>
+                        <li>View a book page</li>
+                        <li>Come back here and refresh this page</li>
+                    </ol>
+                    <p><em>Tip: Open your site in a new tab and interact with it, then refresh this page.</em></p>
+                <?php else: ?>
+                    <p>We have <?php echo $log_count; ?> requests logged, but none in the selected timeframe (<?php echo esc_html($timeframe); ?>).</p>
+                    <p>Try selecting a longer timeframe above, or make some new requests to your site.</p>
+                <?php endif; ?>
+            </div>
+        <?php elseif (!$is_enabled): ?>
+            <div class="card" style="margin-top: 20px; background: #fff3cd; border-left: 4px solid #ffc107;">
+                <h3>🚀 Get Started</h3>
+                <p>Performance monitoring is currently disabled.</p>
+                <p><strong>To start tracking performance:</strong></p>
+                <ol>
+                    <li>Click "Enable Monitoring" above</li>
+                    <li>Use your site normally for a few minutes</li>
+                    <li>Return here to view performance metrics</li>
+                </ol>
+                <p><em>See the "How to Use This Tool" section below for more details.</em></p>
             </div>
         <?php endif; ?>
 
