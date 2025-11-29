@@ -21,6 +21,8 @@ require_once plugin_dir_path(__FILE__) . 'includes/statistics.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/social_auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/authors.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/books.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/series.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/reviews.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/mentions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/achievements.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/inaccuracy_reports.php';
