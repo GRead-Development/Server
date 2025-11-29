@@ -84,6 +84,8 @@ require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/notes_modal.php';
 require_once plugin_dir_path(__FILE__) . 'includes/authors_series.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/authors_series_manager.php';
 require_once plugin_dir_path(__FILE__) . 'includes/authors_series_display.php';
+// Reviews system
+require_once plugin_dir_path(__FILE__) . 'includes/reviews.php';
 // Database repair utilities
 require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
 
@@ -102,24 +104,7 @@ register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
 // On activation, set up the reviews table
 function hs_reviews_activate()
 {
-	global $wpdb;
-	$table_name = $wpdb -> prefix . 'hs_book_reviews';
-	$charset_collate = $wpdb -> get_charset_collate();
-
-	$sql = "CREATE TABLE $table_name (
-		id MEDIUMINT(9) NOT NULL AUTO_INCREMENT,
-		book_id BIGINT(20) UNSIGNED NOT NULL,
-		user_id BIGINT(20) UNSIGNED NOT NULL,
-		rating DECIMAL(3,1) NULL,
-		review_text TEXT NULL,
-		date_submitted DATETIME DEFAULT '0000-00-00 00:00:00' NOT NULL,
-		PRIMARY KEY (id),
-		UNIQUE KEY user_book_review (user_id, book_id),
-		KEY book_id_index (book_id)
-	) $charset_collate;";
-
-	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-	dbDelta($sql);
+	hs_reviews_create_table();
 }
 register_activation_hook(__FILE__, 'hs_reviews_activate');
 

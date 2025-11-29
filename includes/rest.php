@@ -84,6 +84,12 @@ function gread_register_rest_routes() {
         )
     ));
 
+    register_rest_route('gread/v1', '/books/(?P<book_id>\d+)', array(
+        'methods' => 'GET',
+        'callback' => 'gread_get_book_details',
+        'permission_callback' => '__return_true'
+    ));
+
     // --- User Moderation Routes ---
     register_rest_route('gread/v1', '/user/block', array(
         'methods' => 'POST',
@@ -454,6 +460,156 @@ function gread_register_rest_routes() {
         'permission_callback' => '__return_true'
     ));
 
+    // --- Series API Routes ---
+    register_rest_route('gread/v1', '/series', array(
+        array(
+            'methods' => 'GET',
+            'callback' => 'gread_api_get_series_list',
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'search' => array(
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'page' => array(
+                    'required' => false,
+                    'default' => 1
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'default' => 20
+                )
+            )
+        ),
+        array(
+            'methods' => 'POST',
+            'callback' => 'gread_api_create_series',
+            'permission_callback' => 'gread_check_user_permission',
+            'args' => array(
+                'name' => array(
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field'
+                ),
+                'description' => array(
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_textarea_field'
+                )
+            )
+        )
+    ));
+
+    register_rest_route('gread/v1', '/series/(?P<series_id>\d+)', array(
+        array(
+            'methods' => 'GET',
+            'callback' => 'gread_api_get_series',
+            'permission_callback' => '__return_true'
+        ),
+        array(
+            'methods' => 'PUT',
+            'callback' => 'gread_api_update_series',
+            'permission_callback' => 'gread_check_user_permission'
+        ),
+        array(
+            'methods' => 'DELETE',
+            'callback' => 'gread_api_delete_series',
+            'permission_callback' => 'gread_check_user_permission'
+        )
+    ));
+
+    register_rest_route('gread/v1', '/series/(?P<series_id>\d+)/books', array(
+        'methods' => 'GET',
+        'callback' => 'gread_api_get_series_books',
+        'permission_callback' => '__return_true'
+    ));
+
+    // --- Reviews API Routes ---
+    register_rest_route('gread/v1', '/books/(?P<book_id>\d+)/reviews', array(
+        array(
+            'methods' => 'GET',
+            'callback' => 'gread_api_get_book_reviews',
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'page' => array(
+                    'required' => false,
+                    'default' => 1
+                ),
+                'per_page' => array(
+                    'required' => false,
+                    'default' => 20
+                )
+            )
+        ),
+        array(
+            'methods' => 'POST',
+            'callback' => 'gread_api_create_review',
+            'permission_callback' => 'gread_check_user_permission',
+            'args' => array(
+                'rating' => array(
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && $param >= 1 && $param <= 5;
+                    }
+                ),
+                'review_text' => array(
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_textarea_field'
+                )
+            )
+        )
+    ));
+
+    register_rest_route('gread/v1', '/reviews/(?P<review_id>\d+)', array(
+        array(
+            'methods' => 'GET',
+            'callback' => 'gread_api_get_review',
+            'permission_callback' => '__return_true'
+        ),
+        array(
+            'methods' => 'PUT',
+            'callback' => 'gread_api_update_review',
+            'permission_callback' => 'gread_check_user_permission',
+            'args' => array(
+                'rating' => array(
+                    'required' => true,
+                    'validate_callback' => function($param) {
+                        return is_numeric($param) && $param >= 1 && $param <= 5;
+                    }
+                ),
+                'review_text' => array(
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_textarea_field'
+                )
+            )
+        ),
+        array(
+            'methods' => 'DELETE',
+            'callback' => 'gread_api_delete_review',
+            'permission_callback' => 'gread_check_user_permission'
+        )
+    ));
+
+    register_rest_route('gread/v1', '/user/reviews', array(
+        'methods' => 'GET',
+        'callback' => 'gread_api_get_user_reviews',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'page' => array(
+                'required' => false,
+                'default' => 1
+            ),
+            'per_page' => array(
+                'required' => false,
+                'default' => 20
+            )
+        )
+    ));
+
+    register_rest_route('gread/v1', '/books/(?P<book_id>\d+)/rating', array(
+        'methods' => 'GET',
+        'callback' => 'gread_api_get_book_rating',
+        'permission_callback' => '__return_true'
+    ));
+
 
 }
 add_action('rest_api_init', 'gread_register_rest_routes');
@@ -681,6 +837,140 @@ function gread_search_books($request) {
     }
     
     return rest_ensure_response($results);
+}
+
+// Get comprehensive book details
+function gread_get_book_details($request) {
+    $book_id = intval($request['book_id']);
+
+    // Get book post
+    $book = get_post($book_id);
+    if (!$book || $book->post_type !== 'book') {
+        return new WP_Error('book_not_found', 'Book not found', array('status' => 404));
+    }
+
+    // Build comprehensive response
+    $response = array(
+        'id' => $book_id,
+        'title' => $book->post_title,
+        'content' => $book->post_content,
+        'description' => $book->post_excerpt,
+        'permalink' => get_permalink($book_id),
+        'publication_year' => get_post_meta($book_id, 'publication_year', true),
+        'page_count' => intval(get_post_meta($book_id, 'nop', true)),
+        'isbn' => get_post_meta($book_id, 'book_isbn', true),
+        'created_at' => $book->post_date,
+        'modified_at' => $book->post_modified
+    );
+
+    // Get authors using the new author system
+    $authors = array();
+    if (function_exists('hs_get_book_authors')) {
+        $book_authors = hs_get_book_authors($book_id);
+        if ($book_authors) {
+            foreach ($book_authors as $author) {
+                $authors[] = array(
+                    'id' => $author->author_id,
+                    'name' => $author->author_name,
+                    'slug' => $author->author_slug,
+                    'order' => isset($author->author_order) ? $author->author_order : 1
+                );
+            }
+        }
+    }
+
+    // Fallback to old author meta field if no authors found
+    if (empty($authors)) {
+        $legacy_author = get_post_meta($book_id, 'book_author', true);
+        if ($legacy_author) {
+            $authors[] = array(
+                'id' => null,
+                'name' => $legacy_author,
+                'slug' => sanitize_title($legacy_author),
+                'order' => 1
+            );
+        }
+    }
+    $response['authors'] = $authors;
+
+    // Get series
+    $series = array();
+    if (function_exists('hs_get_book_series')) {
+        $book_series = hs_get_book_series($book_id);
+        if ($book_series) {
+            foreach ($book_series as $s) {
+                $series[] = array(
+                    'id' => $s->series_id,
+                    'name' => $s->series_name,
+                    'slug' => $s->series_slug,
+                    'position' => $s->position,
+                    'description' => isset($s->description) ? $s->description : ''
+                );
+            }
+        }
+    }
+    $response['series'] = $series;
+
+    // Get rating information
+    if (function_exists('hs_get_book_average_rating')) {
+        $rating_info = hs_get_book_average_rating($book_id);
+        $response['rating'] = array(
+            'average' => floatval($rating_info['average_rating']),
+            'count' => intval($rating_info['review_count'])
+        );
+    } else {
+        $response['rating'] = array(
+            'average' => 0,
+            'count' => 0
+        );
+    }
+
+    // Get user's review if logged in
+    $response['user_review'] = null;
+    if (is_user_logged_in() && function_exists('hs_get_user_review')) {
+        $user_id = get_current_user_id();
+        $user_review = hs_get_user_review($book_id, $user_id);
+        if ($user_review) {
+            $response['user_review'] = array(
+                'id' => $user_review->id,
+                'rating' => intval($user_review->rating),
+                'review_text' => $user_review->review_text,
+                'created_at' => $user_review->created_at,
+                'updated_at' => $user_review->updated_at
+            );
+        }
+    }
+
+    // Get ISBNs
+    if (function_exists('hs_get_book_isbns')) {
+        $isbns = hs_get_book_isbns($book_id);
+        $response['isbns'] = $isbns ? $isbns : array();
+    } else {
+        $response['isbns'] = array();
+    }
+
+    // Get tags
+    if (function_exists('hs_get_book_tags')) {
+        $tags = hs_get_book_tags($book_id);
+        $response['tags'] = $tags ? $tags : array();
+    } else {
+        $response['tags'] = array();
+    }
+
+    // Get thumbnail/cover
+    $thumbnail_id = get_post_thumbnail_id($book_id);
+    if ($thumbnail_id) {
+        $response['cover_image'] = array(
+            'thumbnail' => wp_get_attachment_image_url($thumbnail_id, 'thumbnail'),
+            'medium' => wp_get_attachment_image_url($thumbnail_id, 'medium'),
+            'large' => wp_get_attachment_image_url($thumbnail_id, 'large'),
+            'full' => wp_get_attachment_image_url($thumbnail_id, 'full')
+        );
+    } else {
+        $response['cover_image'] = null;
+    }
+
+    return rest_ensure_response($response);
 }
 
 // --- Activity Feed Function (FIXED) ---
@@ -2474,6 +2764,350 @@ function gread_set_primary_isbn($request) {
         'success' => true,
         'message' => 'Primary ISBN set successfully',
         'isbn' => $isbn
+    ));
+}
+
+// --- Series API Callback Functions ---
+
+function gread_api_get_series_list($request) {
+    $search = isset($request['search']) ? sanitize_text_field($request['search']) : '';
+    $page = isset($request['page']) ? intval($request['page']) : 1;
+    $per_page = isset($request['per_page']) ? intval($request['per_page']) : 20;
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_series';
+    $offset = ($page - 1) * $per_page;
+
+    if (!empty($search)) {
+        $series = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name
+             WHERE name LIKE %s
+             ORDER BY name ASC
+             LIMIT %d OFFSET %d",
+            '%' . $wpdb->esc_like($search) . '%',
+            $per_page,
+            $offset
+        ));
+
+        $total = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE name LIKE %s",
+            '%' . $wpdb->esc_like($search) . '%'
+        ));
+    } else {
+        $series = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $table_name
+             ORDER BY name ASC
+             LIMIT %d OFFSET %d",
+            $per_page,
+            $offset
+        ));
+
+        $total = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+    }
+
+    return rest_ensure_response(array(
+        'series' => $series,
+        'total' => intval($total),
+        'page' => $page,
+        'per_page' => $per_page,
+        'total_pages' => ceil($total / $per_page)
+    ));
+}
+
+function gread_api_get_series($request) {
+    $series_id = intval($request['series_id']);
+    $series = hs_get_series($series_id);
+
+    if (!$series) {
+        return new WP_Error('series_not_found', 'Series not found', array('status' => 404));
+    }
+
+    return rest_ensure_response($series);
+}
+
+function gread_api_create_series($request) {
+    $name = sanitize_text_field($request['name']);
+    $description = isset($request['description']) ? sanitize_textarea_field($request['description']) : '';
+
+    $user_id = get_current_user_id();
+
+    $series_id = hs_create_series($name, $description, $user_id);
+
+    if (!$series_id) {
+        return new WP_Error('create_failed', 'Failed to create series', array('status' => 500));
+    }
+
+    $series = hs_get_series($series_id);
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'series' => $series
+    ));
+}
+
+function gread_api_update_series($request) {
+    $series_id = intval($request['series_id']);
+    $name = isset($request['name']) ? sanitize_text_field($request['name']) : null;
+    $description = isset($request['description']) ? sanitize_textarea_field($request['description']) : null;
+
+    $series = hs_get_series($series_id);
+    if (!$series) {
+        return new WP_Error('series_not_found', 'Series not found', array('status' => 404));
+    }
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_series';
+
+    $update_data = array();
+    $update_format = array();
+
+    if ($name !== null) {
+        $update_data['name'] = $name;
+        $update_data['slug'] = sanitize_title($name);
+        $update_format[] = '%s';
+        $update_format[] = '%s';
+    }
+
+    if ($description !== null) {
+        $update_data['description'] = $description;
+        $update_format[] = '%s';
+    }
+
+    if (!empty($update_data)) {
+        $wpdb->update(
+            $table_name,
+            $update_data,
+            array('id' => $series_id),
+            $update_format,
+            array('%d')
+        );
+    }
+
+    $series = hs_get_series($series_id);
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'series' => $series
+    ));
+}
+
+function gread_api_delete_series($request) {
+    $series_id = intval($request['series_id']);
+
+    $result = hs_delete_series($series_id);
+
+    if (!$result) {
+        return new WP_Error('delete_failed', 'Failed to delete series', array('status' => 500));
+    }
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'message' => 'Series deleted successfully'
+    ));
+}
+
+function gread_api_get_series_books($request) {
+    $series_id = intval($request['series_id']);
+
+    $books = hs_get_series_books($series_id);
+
+    if ($books === false) {
+        return new WP_Error('series_not_found', 'Series not found', array('status' => 404));
+    }
+
+    // Enhance books with additional data
+    foreach ($books as &$book) {
+        $post = get_post($book->book_id);
+        if ($post) {
+            $book->title = $post->post_title;
+            $book->permalink = get_permalink($book->book_id);
+
+            // Get authors
+            $authors = hs_get_book_authors($book->book_id);
+            $book->authors = $authors;
+        }
+    }
+
+    return rest_ensure_response(array(
+        'books' => $books,
+        'total' => count($books)
+    ));
+}
+
+// --- Reviews API Callback Functions ---
+
+function gread_api_get_book_reviews($request) {
+    $book_id = intval($request['book_id']);
+    $page = isset($request['page']) ? intval($request['page']) : 1;
+    $per_page = isset($request['per_page']) ? intval($request['per_page']) : 20;
+
+    $offset = ($page - 1) * $per_page;
+
+    $reviews = hs_get_book_reviews($book_id, $per_page, $offset);
+
+    // Get total count
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_book_reviews';
+    $total = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $table_name WHERE book_id = %d",
+        $book_id
+    ));
+
+    return rest_ensure_response(array(
+        'reviews' => $reviews,
+        'total' => intval($total),
+        'page' => $page,
+        'per_page' => $per_page,
+        'total_pages' => ceil($total / $per_page)
+    ));
+}
+
+function gread_api_create_review($request) {
+    $book_id = intval($request['book_id']);
+    $rating = intval($request['rating']);
+    $review_text = isset($request['review_text']) ? sanitize_textarea_field($request['review_text']) : '';
+
+    $user_id = get_current_user_id();
+
+    // Check if book exists
+    $book = get_post($book_id);
+    if (!$book || $book->post_type !== 'book') {
+        return new WP_Error('invalid_book', 'Invalid book ID', array('status' => 404));
+    }
+
+    $review_id = hs_create_review($book_id, $user_id, $rating, $review_text);
+
+    if (!$review_id) {
+        return new WP_Error('create_failed', 'Failed to create review', array('status' => 500));
+    }
+
+    $review = hs_get_review($review_id);
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'review' => $review
+    ));
+}
+
+function gread_api_get_review($request) {
+    $review_id = intval($request['review_id']);
+
+    $review = hs_get_review($review_id);
+
+    if (!$review) {
+        return new WP_Error('review_not_found', 'Review not found', array('status' => 404));
+    }
+
+    // Add user info
+    $user = get_userdata($review->user_id);
+    if ($user) {
+        $review->display_name = $user->display_name;
+        $review->user_login = $user->user_login;
+    }
+
+    return rest_ensure_response($review);
+}
+
+function gread_api_update_review($request) {
+    $review_id = intval($request['review_id']);
+    $rating = intval($request['rating']);
+    $review_text = isset($request['review_text']) ? sanitize_textarea_field($request['review_text']) : '';
+
+    $user_id = get_current_user_id();
+
+    // Check if review exists and belongs to user
+    $review = hs_get_review($review_id);
+    if (!$review) {
+        return new WP_Error('review_not_found', 'Review not found', array('status' => 404));
+    }
+
+    if ($review->user_id != $user_id) {
+        return new WP_Error('unauthorized', 'You can only edit your own reviews', array('status' => 403));
+    }
+
+    $result = hs_update_review($review_id, $rating, $review_text);
+
+    if (!$result) {
+        return new WP_Error('update_failed', 'Failed to update review', array('status' => 500));
+    }
+
+    $review = hs_get_review($review_id);
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'review' => $review
+    ));
+}
+
+function gread_api_delete_review($request) {
+    $review_id = intval($request['review_id']);
+    $user_id = get_current_user_id();
+
+    // Check if review exists and belongs to user
+    $review = hs_get_review($review_id);
+    if (!$review) {
+        return new WP_Error('review_not_found', 'Review not found', array('status' => 404));
+    }
+
+    if ($review->user_id != $user_id && !current_user_can('manage_options')) {
+        return new WP_Error('unauthorized', 'You can only delete your own reviews', array('status' => 403));
+    }
+
+    $result = hs_delete_review($review_id);
+
+    if (!$result) {
+        return new WP_Error('delete_failed', 'Failed to delete review', array('status' => 500));
+    }
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'message' => 'Review deleted successfully'
+    ));
+}
+
+function gread_api_get_user_reviews($request) {
+    $page = isset($request['page']) ? intval($request['page']) : 1;
+    $per_page = isset($request['per_page']) ? intval($request['per_page']) : 20;
+    $user_id = get_current_user_id();
+
+    $offset = ($page - 1) * $per_page;
+
+    $reviews = hs_get_user_reviews($user_id, $per_page, $offset);
+
+    // Get total count
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_book_reviews';
+    $total = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $table_name WHERE user_id = %d",
+        $user_id
+    ));
+
+    return rest_ensure_response(array(
+        'reviews' => $reviews,
+        'total' => intval($total),
+        'page' => $page,
+        'per_page' => $per_page,
+        'total_pages' => ceil($total / $per_page)
+    ));
+}
+
+function gread_api_get_book_rating($request) {
+    $book_id = intval($request['book_id']);
+
+    // Check if book exists
+    $book = get_post($book_id);
+    if (!$book || $book->post_type !== 'book') {
+        return new WP_Error('invalid_book', 'Invalid book ID', array('status' => 404));
+    }
+
+    $rating_info = hs_get_book_average_rating($book_id);
+    $distribution = hs_get_book_rating_distribution($book_id);
+
+    return rest_ensure_response(array(
+        'book_id' => $book_id,
+        'average_rating' => $rating_info['average_rating'],
+        'review_count' => $rating_info['review_count'],
+        'rating_distribution' => $distribution
     ));
 }
 
