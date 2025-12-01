@@ -25,6 +25,7 @@ function hs_achievements_create_table()
 		icon_color varchar(7) NOT NULL DEFAULT '#FFD700',
 		unlock_metric varchar(50) NOT NULL,
 		unlock_value int(11) NOT NULL,
+		author_term_id bigint(20) DEFAULT NULL,
 		unlock_condition varchar(20) DEFAULT 'simple' AFTER unlock_value,
 		condition_data text AFTER unlock_condition,
 		points_reward int(11) DEFAULT 0,
@@ -73,41 +74,97 @@ function hs_achievements_add_admin_page()
 add_action('admin_menu', 'hs_achievements_add_admin_page');
 
 
-// Admin page HTML
 function hs_achievements_admin_page_html()
 {
-	global $wpdb;
-	$table_name = $wpdb -> prefix . 'hs_achievements';
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_achievements';
 
 
-	// Form submission
+    // Form submission
 	if (isset($_POST['hs_save_achievement_nonce']) && wp_verify_nonce($_POST['hs_save_achievement_nonce'], 'hs_save_achievement'))
 	{
 		$achievement_id = isset($_POST['achievement_id']) ? intval($_POST['achievement_id']) : 0;
 
+		// 1. Prepare standard data (Now including all necessary fields)
 		$data = [
-		'slug' => sanitize_key($_POST['slug']),
-		'name' => sanitize_text_field($_POST['name']),
-		'description' => sanitize_textarea_field($_POST['description']),
-		'icon_type' => sanitize_key($_POST['icon_type']),
-		'icon_color' => sanitize_hex_color($_POST['icon_color']),
-		'unlock_metric' => sanitize_key($_POST['unlock_metric']),
-		'unlock_value' => intval($_POST['unlock_value']),
-		'points_reward' => intval($_POST['points_reward']),
-		'is_hidden' => isset($_POST['is_hidden']) ? 1 : 0,
-		'display_order' => intval($_POST['display_order']),
-	];
+			'slug'            => sanitize_key($_POST['slug']),
+			'name'            => sanitize_text_field($_POST['name']),
+			'description'     => sanitize_textarea_field($_POST['description']),
+			'icon_type'       => sanitize_key($_POST['icon_type']),
+			'icon_color'      => sanitize_hex_color($_POST['icon_color']),
+			'unlock_metric'   => sanitize_key($_POST['unlock_metric']),
+			'unlock_value'    => intval($_POST['unlock_value']),
+			'unlock_condition' => sanitize_text_field($_POST['unlock_condition'] ?? 'simple'), // Assuming you have an input field for this
+			'condition_data'  => sanitize_textarea_field($_POST['condition_data'] ?? ''), // Assuming you have an input field for this
+			'points_reward'   => intval($_POST['points_reward']),
+			'is_hidden'       => isset($_POST['is_hidden']) ? 1 : 0,
+			'display_order'   => intval($_POST['display_order']),
+		];
 
+		// 2. Handle the specific 'author_term_id' field
+		if ($data['unlock_metric'] === 'author_read_count') {
+			$author_id = isset($_POST['author_term_id']) ? intval($_POST['author_term_id']) : 0;
+			// Use an empty string for NULL compatibility in wpdb format
+			$data['author_term_id'] = $author_id > 0 ? (string)$author_id : NULL; 
+		} else {
+			$data['author_term_id'] = NULL;
+		}
+
+		// 3. Define the final, ordered data array and format array 
+		//    (Matches the expected table structure: slug -> name -> ... -> author_term_id)
+		$final_data = [
+			'slug'             => $data['slug'],
+			'name'             => $data['name'],
+			'description'      => $data['description'],
+			'icon_type'        => $data['icon_type'],
+			'icon_color'       => $data['icon_color'],
+			'unlock_metric'    => $data['unlock_metric'],
+			'unlock_value'     => $data['unlock_value'],
+			// *** INSERT MISSING COLUMNS HERE ***
+			'unlock_condition' => $data['unlock_condition'], 
+			'condition_data'   => $data['condition_data'],
+			// **********************************
+			'points_reward'    => $data['points_reward'],
+			'is_hidden'        => $data['is_hidden'],
+			'display_order'    => $data['display_order'],
+			'author_term_id'   => $data['author_term_id'], 
+		];
+
+		// The format array must also match the final data array (13 fields total, if I counted correctly)
+		$final_format = [
+			'%s', // slug
+			'%s', // name
+			'%s', // description
+			'%s', // icon_type
+			'%s', // icon_color
+			'%s', // unlock_metric
+			'%d', // unlock_value
+			'%s', // unlock_condition (Assuming string)
+			'%s', // condition_data (Assuming string/text)
+			'%d', // points_reward
+			'%d', // is_hidden
+			'%d', // display_order
+			'%d', // author_term_id 
+		];
+
+
+		// 4. Perform database action
 		if ($achievement_id > 0)
 		{
-			$wpdb -> update($table_name, $data, ['id' => $achievement_id]);
+			$wpdb->update($table_name, $final_data, ['id' => $achievement_id], $final_format, ['%d']);
 			echo '<div class="notice notice-success"><p>Achievement updated successfully.</p></div>';
 		}
 
 		else
 		{
-			$wpdb -> insert($table_name, $data);
-			echo '<div class="notice notice-success"><p>Achievement created successfully.</p></div>';
+			$wpdb->insert($table_name, $final_data, $final_format);
+			// Check for error after insert
+			if ($wpdb->last_error !== '') {
+				error_log("Achievement Insert Error: " . $wpdb->last_error);
+				echo '<div class="notice notice-error"><p>Error creating achievement: ' . esc_html($wpdb->last_error) . '</p></div>';
+			} else {
+				echo '<div class="notice notice-success"><p>Achievement created successfully.</p></div>';
+			}
 		}
 	}
 
@@ -180,17 +237,59 @@ function hs_achievements_admin_page_html()
                         </div>
                         
                         <h3>Unlock Requirements</h3>
-                        
-                        <div class="form-field">
-                            <label for="unlock_metric">Unlock Metric *</label>
-                            <select name="unlock_metric" id="unlock_metric" required>
-                                <option value="points" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'points' ? 'selected' : ''; ?>>Points Earned</option>
-                                <option value="books_read" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_read' ? 'selected' : ''; ?>>Books Completed</option>
-                                <option value="pages_read" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'pages_read' ? 'selected' : ''; ?>>Pages Read</option>
-                                <option value="books_added" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_added' ? 'selected' : ''; ?>>Books Added to Database</option>
-                                <option value="approved_reports" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'approved_reports' ? 'selected' : ''; ?>>Approved Reports</option>
-                            </select>
-                        </div>
+			
+						<div class="form-field">
+							<label for="unlock_metric">Unlock Metric *</label>
+							<select name="unlock_metric" id="unlock_metric" required onchange="toggleMetricFields()">
+								<option value="points" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'points' ? 'selected' : ''; ?>>Points Earned</option>
+								<option value="books_read" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_read' ? 'selected' : ''; ?>>Books Completed</option>
+								<option value="pages_read" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'pages_read' ? 'selected' : ''; ?>>Pages Read</option>
+								<option value="books_added" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_added' ? 'selected' : ''; ?>>Books Added to Database</option>
+								<option value="approved_reports" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'approved_reports' ? 'selected' : ''; ?>>Approved Reports</option>
+								<option value="author_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'author_read_count' ? 'selected' : ''; ?>>Books by Specific Author</option>
+							</select>
+						</div>
+
+						<div class="form-field" id="author_id_container" style="display: none;">
+							<label for="author_term_id">Required Author ID *</label>
+							<input type="number" 
+								   name="author_term_id" 
+								   id="author_term_id" 
+								   placeholder="Enter the Author Term ID (e.g., 52)"
+								   value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->author_term_id ?? '') : ''; ?>"
+								   min="1">
+							<p class="description">This is the unique ID of the author's taxonomy term.</p>
+						</div>
+
+						<script>
+						// The function is now named `toggleMetricFields` and is attached to the select element via onchange.
+						function toggleMetricFields() {
+							const metricSelect = document.getElementById('unlock_metric');
+							// TARGET the correct container ID: author_id_container
+							const authorContainer = document.getElementById('author_id_container'); 
+							// TARGET the correct input ID: author_term_id
+							const authorInput = document.getElementById('author_term_id'); 
+
+							if (metricSelect.value === 'author_read_count') {
+								// Show the input
+								authorContainer.style.display = 'block';
+								authorInput.setAttribute('required', 'required');
+							} else {
+								// Hide the input
+								authorContainer.style.display = 'none';
+								authorInput.removeAttribute('required');
+								authorInput.value = ''; // Clear value
+							}
+						}
+
+						// Run on page load
+						document.addEventListener('DOMContentLoaded', function() {
+							// Check if the necessary elements exist before running
+							if (document.getElementById('unlock_metric')) {
+								toggleMetricFields();
+							}
+						});
+						</script>
                         
                         <div class="form-field">
                             <label for="unlock_value">Unlock Value *</label>
@@ -322,84 +421,102 @@ function hs_get_icon_symbol($icon_type) {
 // Check and unlock achievements for a given user
 function hs_check_user_achievements($user_id)
 {
-	if (!$user_id)
-	{
-		return;
-	}
+    if (!$user_id)
+    {
+        return;
+    }
 
-	global $wpdb;
-	$achievements_table = $wpdb -> prefix . 'hs_achievements';
-	$user_achievements_table = $wpdb -> prefix . 'hs_user_achievements';
-
-
-	// Retrieve unlocked achievements
-	$unlocked_achievement_ids = $wpdb -> get_col($wpdb -> prepare(
-		"SELECT achievement_id FROM $user_achievements_table WHERE user_id = %d",
-		$user_id
-	));
+    global $wpdb;
+    $achievements_table = $wpdb->prefix . 'hs_achievements';
+    $user_achievements_table = $wpdb->prefix . 'hs_user_achievements';
 
 
-	// Retrieve locked achievements
-	$placeholder = !empty($unlocked_achievement_ids) ? implode(',', array_fill(0, count($unlocked_achievement_ids), '%d')) : '0';
-	$query = "SELECT * FROM $achievements_table WHERE id NOT IN ($placeholder)";
-	$unearned_achievements = $wpdb -> get_results($wpdb -> prepare($query, $unlocked_achievement_ids));
-
-	if (empty($unearned_achievements))
-	{
-		return;
-	}
+    // Retrieve unlocked achievements
+    $unlocked_achievement_ids = $wpdb->get_col($wpdb->prepare(
+        "SELECT achievement_id FROM $user_achievements_table WHERE user_id = %d",
+        $user_id
+    ));
 
 
-	// Retrieve user statistics
-	$user_stats = [
-		'points' => (int) get_user_meta($user_id, 'user_points', true),
-		'books_read' => (int) get_user_meta($user_id, 'hs_completed_books_count', true),
-		'pages_read' => (int) get_user_meta($user_id, 'hs_total_pages_read', true),
-		'books_added' => (int) get_user_meta($user_id, 'hs_books_added_count', true),
-		'approved_reports' => (int) get_user_meta($user_id, 'hs_approved_reports_count', true),
-	];
+    // Retrieve locked achievements
+    $placeholder = !empty($unlocked_achievement_ids) ? implode(',', array_fill(0, count($unlocked_achievement_ids), '%d')) : '0';
+    $query = "SELECT * FROM $achievements_table WHERE id NOT IN ($placeholder)";
+    // The author_term_id is retrieved here as part of SELECT *
+    $unearned_achievements = $wpdb->get_results($wpdb->prepare($query, $unlocked_achievement_ids));
+
+    if (empty($unearned_achievements))
+    {
+        return;
+    }
 
 
-	$metric_map = [
-		'points' => 'user_points',
-		'books_read' => 'hs_completed_books_count',
-		'pages_read' => 'hs_total_pages_read',
-		'books_added' => 'hs_books_added_count',
-		'approved_reports' => 'hs_approved_reports_count',
-	];
+    // --- PHASE 1: RETRIEVE ALL USER STATISTICS (Corrected Loop) ---
 
-	$user_stats = [];
-	foreach ($metric_map as $metric => $meta_key)
-	{
-		$user_stats[$metric] = (int) get_user_meta($user_id, $meta_key, true);
+    // Define all metrics that rely on user meta
+    $metric_map = [
+        'points' => 'user_points',
+        'books_read' => 'hs_completed_books_count',
+        'pages_read' => 'hs_total_pages_read',
+        'books_added' => 'hs_books_added_count',
+        'approved_reports' => 'hs_approved_reports_count',
+    ];
 
+    $user_stats = [];
+    foreach ($metric_map as $metric => $meta_key)
+    {
+        $user_stats[$metric] = (int) get_user_meta($user_id, $meta_key, true);
+    }
+    
+    // --- PHASE 2: CHECK EACH UNLOCKED ACHIEVEMENT ---
 
-	// Check each achievement
-	foreach ($unearned_achievements as $achievement)
-	{
-		$metric = $achievement -> unlock_metric;
+    foreach ($unearned_achievements as $achievement)
+    {
+        $metric = $achievement->unlock_metric;
+        $unlocked = false;
+        $current_value = 0;
 
-		if (isset($user_stats[$metric]) && $user_stats[$metric] >= $achievement -> unlock_value)
-		{
-			$wpdb -> insert(
-			$user_achievements_table,
-			[
-				'user_id' => $user_id,
-				'achievement_id' => $achievement -> id,
-				'date_unlocked' => current_time('mysql'),
-			],
-			['%d', '%d', '%s']
-		);
+        // 1. Handle the custom 'author_read_count' metric
+        if ($metric === 'author_read_count') {
+            $author_id = (int) $achievement->author_term_id; 
+            
+            if ($author_id > 0) {
+                // IMPORTANT: Rely on the external function to calculate the count
+                $current_value = hs_get_author_read_count_by_id($user_id, $author_id);
+                
+                if ($current_value >= $achievement->unlock_value) {
+                    $unlocked = true;
+                }
+            }
+        } 
+        // 2. Handle all other simple user meta metrics
+        elseif (isset($user_stats[$metric])) {
+            $current_value = $user_stats[$metric];
 
+            if ($current_value >= $achievement->unlock_value) {
+                $unlocked = true;
+            }
+        }
 
-		// If points are part of the achievement, award points
-		if ($achievement -> points_reward > 0 && function_exists('award_points'))
-		{
-			award_points($user_id, $achievement -> points_reward);
-		}
-	}
-}}
+        // 3. Perform the unlock action if conditions met
+        if ($unlocked) {
+            $wpdb->insert(
+                $user_achievements_table,
+                [
+                    'user_id' => $user_id,
+                    'achievement_id' => $achievement->id,
+                    'date_unlocked' => current_time('mysql'),
+                ],
+                ['%d', '%d', '%s']
+            );
+
+            // Award points
+            if ($achievement->points_reward > 0 && function_exists('award_points')) {
+                award_points($user_id, $achievement->points_reward);
+            }
+        }
+    }
 }
+// Actions are correctly hooked below the function body
 add_action('hs_stats_updated', 'hs_check_user_achievements', 10, 1);
 add_action('hs_points_updated', 'hs_check_user_achievements', 10, 1);
 
@@ -493,22 +610,52 @@ function hs_render_achievements_display()
 
         <div class="hs-achievements-grid">
             <?php foreach ($all_achievements as $achievement): ?>
-                <?php
-                $is_unlocked = $achievement->is_unlocked;
-                $progress_percentage = 0;
-                $current_value = 0;
 
-                if (!$is_unlocked) {
-                    $current_value = isset($user_stats[$achievement->unlock_metric]) ? $user_stats[$achievement->unlock_metric] : 0;
-                    if ($achievement->unlock_value > 0) {
-                        $progress_percentage = min(100, ($current_value / $achievement->unlock_value) * 100);
-                    }
-                } else {
-                    $progress_percentage = 100;
-                }
+				<?php
+				// ... (inside the foreach loop) ...
 
-                $is_hidden = $achievement->is_hidden && !$is_unlocked;
-                ?>
+				$is_unlocked = $achievement->is_unlocked;
+				$progress_percentage = 0;
+				$current_value = 0;
+				$unlock_label = esc_html(ucwords(str_replace('_', ' ', $achievement->unlock_metric)));
+
+				if (!$is_unlocked) {
+					$metric = $achievement->unlock_metric;
+
+					if ($metric === 'author_read_count') {
+						// We assume the stored ID is the ID from your custom 'hs_authors' table.
+						$author_id = (int) $achievement->author_term_id; 
+
+						if ($author_id > 0) {
+
+							// 1. Calculate the current value using the fixed, working function.
+							$current_value = hs_get_author_read_count_by_id($user_id, $author_id);
+
+							// 2. Fetch the author name for display using your custom helper function.
+							// This function retrieves the name string from your 'hs_authors' table.
+							$author_name = hs_get_author_name_by_id($author_id); 
+
+							if (!empty($author_name)) {
+								// Use the name retrieved from your custom system.
+								$unlock_label = "Books by " . esc_html($author_name);
+							} else {
+								$unlock_label = "Books by Unknown Author (ID {$author_id})";
+							}
+						}
+					} elseif (isset($user_stats[$metric])) {
+						// B. Standard Meta Metrics
+						$current_value = $user_stats[$metric];
+					}
+
+					// Calculate percentage based on the resulting $current_value
+					if ($achievement->unlock_value > 0) {
+						$progress_percentage = min(100, ($current_value / $achievement->unlock_value) * 100);
+					}
+
+				} else {
+					$progress_percentage = 100;
+				}
+				?>
 
                 <div class="hs-achievement-item <?php echo $is_unlocked ? 'unlocked' : 'locked'; ?> <?php echo $is_hidden ? 'hidden-achievement' : ''; ?>">
                     <div class="hs-achievement-icon" style="background-color: <?php echo $is_unlocked ? esc_attr($achievement->icon_color) : '#ccc'; ?>">
@@ -536,7 +683,7 @@ function hs_render_achievements_display()
                                     <span class="unlocked-text">✓ Unlocked <?php echo human_time_diff(strtotime($achievement->date_unlocked), current_time('timestamp')); ?> ago</span>
                                 <?php else: ?>
                                     <?php echo number_format($current_value); ?> / <?php echo number_format($achievement->unlock_value); ?> 
-                                    <?php echo esc_html(ucwords(str_replace('_', ' ', $achievement->unlock_metric))); ?>
+                                    <?php echo esc_html($unlock_label); ?>
                                 <?php endif; ?>
                             </p>
                         <?php endif; ?>

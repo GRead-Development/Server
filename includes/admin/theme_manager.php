@@ -771,6 +771,7 @@ function hs_generate_buddyx_theme_css() {
 	'body.theme-%s .hs-book-notes',
 	'body.theme-%s .hs-note-item',
 	'body.theme-%s .hs-note-text',
+	'body.theme-%s .hs-book-meta',
 	'body.theme-%s .sub-menu',
 	'body.theme-%s li',
 	'body.theme-%s tr',

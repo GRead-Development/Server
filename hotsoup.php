@@ -26,7 +26,6 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/achievements.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/inaccuracy_reports.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/notes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/social_login.php';
-require_once plugin_dir_path(__FILE__) . 'includes/api/apple_auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/chimera.php';
 require_once plugin_dir_path(__FILE__) . 'includes/auth/social_login.php';
 require_once plugin_dir_path(__FILE__) . 'includes/search/filter.php';
@@ -999,4 +998,117 @@ function hs_book_tags_activate()
 		UNIQUE KEY book_tag (book_id, tag_slug),
 		INDEX (tag_slug)
 	)" );
+}
+
+function hs_redirect_author_param_fixed() {
+    // ----------------------------------------------------
+    // CONFIGURATION: Enter your "Author Profile" Page ID here
+    $target_page_id = 2838; 
+    // ----------------------------------------------------
+
+    // 1. If there is no author_id in the URL, do nothing.
+    if (!isset($_GET['author_id'])) {
+        return;
+    }
+
+    // 2. SAFETY CHECK: Get the ID of the page we are currently looking at.
+    // If we are ALREADY on the target page, STOP. This prevents the loop.
+    $current_page_id = get_queried_object_id();
+    
+    if ($current_page_id == $target_page_id) {
+        return;
+    }
+
+    // 3. If we are here, we have an ID, but we are on the wrong page.
+    // Redirect to the correct page.
+    $target_url = get_permalink($target_page_id);
+    
+    if ($target_url) {
+        $redirect_url = add_query_arg('author_id', sanitize_text_field($_GET['author_id']), $target_url);
+        wp_redirect($redirect_url);
+        exit;
+    }
+}
+add_action('template_redirect', 'hs_redirect_author_param_fixed');
+
+/**
+ * Counts how many books a user has completed by a specific author (using custom Author ID).
+ *
+ * This function retrieves the canonical author name associated with the ID and then queries
+ * the post meta to find completed books.
+ *
+ * @param int $user_id      The user ID to check.
+ * @param int $author_id    The ID from the custom 'hs_authors' table.
+ * @return int              Number of books completed by that author.
+ */
+function hs_get_author_read_count_by_id($user_id, $author_id)
+{
+    // Step 1: Get the canonical author name associated with this ID.
+    // NOTE: You MUST implement the helper function below.
+    $author_name = hs_get_author_name_by_id($author_id);
+    
+    if (empty($author_name)) {
+        // Cannot proceed if we can't find the name for the ID.
+        return 0;
+    }
+
+    global $wpdb;
+    $user_books_table = $wpdb->prefix . 'user_books';
+    
+    // Critical Meta Keys based on your ACF definitions
+    $author_meta_key = 'book_author'; // ACF field name for the author string
+    $pages_meta_key = 'nop';          // ACF field name for the total page count
+
+    $sql = "
+        SELECT COUNT(DISTINCT ub.book_id)
+        FROM {$user_books_table} AS ub
+        
+        -- Join Post Meta (pm_pages) for completion check
+        JOIN {$wpdb->postmeta} AS pm_pages  
+            ON ub.book_id = pm_pages.post_id
+        
+        -- Join Post Meta (pm_author) for author name check
+        JOIN {$wpdb->postmeta} AS pm_author 
+            ON ub.book_id = pm_author.post_id
+
+        WHERE ub.user_id = %d
+        
+        -- LOGIC 1: Completion Check (current page >= total pages)
+        AND pm_pages.meta_key = %s
+        AND ub.current_page >= CAST(pm_pages.meta_value AS UNSIGNED)
+        
+        -- LOGIC 2: Author Name Check (must match the name we found from the ID)
+        AND pm_author.meta_key = %s
+        AND pm_author.meta_value = %s
+    ";
+
+    // Prepare and execute the SQL query
+    $count = $wpdb->get_var($wpdb->prepare(
+        $sql, 
+        $user_id,             // %d for ub.user_id
+        $pages_meta_key,      // %s for pm_pages.meta_key
+        $author_meta_key,     // %s for pm_author.meta_key
+        $author_name          // %s for pm_author.meta_value (the canonical name)
+    ));
+
+    return intval($count);
+}
+
+/**
+ * Helper function to retrieve the canonical author name string from the custom table
+ * using the provided custom Author ID.
+ *
+ * @param int $author_id The ID from the custom 'hs_authors' table.
+ * @return string|null The canonical author name or null if not found.
+ */
+function hs_get_author_name_by_id($author_id) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_authors';
+
+    $name = $wpdb->get_var($wpdb->prepare(
+        "SELECT name FROM {$table_name} WHERE id = %d",
+        $author_id
+    ));
+    
+    return $name ? (string) $name : null;
 }
