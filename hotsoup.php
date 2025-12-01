@@ -1116,3 +1116,22 @@ function hs_get_author_name_by_id($author_id) {
     
     return $name ? (string) $name : null;
 }
+
+// Define the WP-Cron hook name
+define('HS_DAILY_STATS_CRON_HOOK', 'hs_daily_stats_recalculate');
+
+// 1. Hook the calculation function to the cron hook
+add_action(HS_DAILY_STATS_CRON_HOOK, 'hs_calculate_site_wide_stats');
+
+
+// 2. Schedule the cron event when the plugin/theme loads
+function hs_schedule_daily_stats()
+{
+    // Check if the event is already scheduled
+    if (!wp_next_scheduled(HS_DAILY_STATS_CRON_HOOK))
+    {
+        // Schedule the event to run daily, starting at midnight today
+        wp_schedule_event(strtotime('tomorrow 00:00:00'), 'daily', HS_DAILY_STATS_CRON_HOOK);
+    }
+}
+add_action('wp_loaded', 'hs_schedule_daily_stats');

@@ -43,6 +43,8 @@ function hs_update_user_stats($user_id)
 	update_user_meta($user_id, 'hs_completed_books_count', intval($completed_books_count));
 
 	delete_transient('hs_user_stats_' . $user_id);
+	
+	delete_transient('hs_site_wide_stats_totals');
 
 	do_action('hs_stats_updated', $user_id);
 }
@@ -150,6 +152,60 @@ function hs_decrement_books_added($user_id)
 	update_user_meta($user_id, 'hs_books_added_count', max(0, $current_count - 1));
 
 	do_action('hs_stats_updated', $user_id);
+}
+
+/**
+ * Calculates site-wide totals and stores them in a WordPress Option.
+ * This is intended to be called by the scheduled WP-Cron job.
+ */
+function hs_calculate_site_wide_stats()
+{
+    global $wpdb;
+    
+    // Total Pages Read across all users
+    $total_pages_read = $wpdb->get_var("
+        SELECT SUM(CAST(meta_value AS UNSIGNED)) 
+        FROM {$wpdb->usermeta} 
+        WHERE meta_key = 'hs_total_pages_read'
+    ");
+
+    // Total Completed Books across all users
+    $total_books_read = $wpdb->get_var("
+        SELECT SUM(CAST(meta_value AS UNSIGNED)) 
+        FROM {$wpdb->usermeta} 
+        WHERE meta_key = 'hs_completed_books_count'
+    ");
+    
+    $user_counts = count_users();
+    $total_users = $user_counts['total_users'];
+
+
+    $stats = [
+        'total_users'      => intval($total_users),
+        'total_pages_read' => intval($total_pages_read),
+        'total_books_read' => intval($total_books_read),
+    ];
+
+    // Store the calculated array in a single WordPress option
+    update_option('hs_site_wide_stats_cache', $stats);
+}
+
+/**
+ * Retrieves the cached site-wide stats.
+ * This is the function called by the leaderboard code.
+ */
+function hs_get_site_wide_stats()
+{
+    // Retrieve the cached data, or calculate it immediately if it doesn't exist yet.
+    $stats = get_option('hs_site_wide_stats_cache');
+    
+    if (empty($stats)) {
+        // Fallback: Calculate immediately if the option hasn't been set yet
+        hs_calculate_site_wide_stats();
+        $stats = get_option('hs_site_wide_stats_cache', []);
+    }
+    
+    return $stats;
 }
 
 function hs_user_stats_styles()

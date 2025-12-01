@@ -160,8 +160,6 @@ function hs_points_leaderboard_shortcode($atts)
 
 	foreach ($top_users as $user)
 	{
-		
-
 		$user_info = get_userdata($user -> user_id);
 
 		if ($user_info)
@@ -178,9 +176,36 @@ function hs_points_leaderboard_shortcode($atts)
 		}
 	}
 
-	$output .= '</ol></div>';
+	$output .= '</ol>';
+	
+	$site_stats = hs_get_site_wide_stats();
+
+	$total_users = number_format($site_stats['total_users']);
+
+	$total_pages_read = $site_stats['total_pages_read'];
+	$total_pages_read_formatted = number_format($total_pages_read);
+	// Use the WordPress i18n plural function
+	$pages_label = _n('page', 'pages', $total_pages_read, 'hotsoup');
+
+	$total_books_read = $site_stats['total_books_read'];
+	$total_books_read_formatted = number_format($total_books_read);
+	$books_label = _n('book', 'books', $total_books_read, 'hotsoup');
+
+	$output .= '<div class="hs-site-stats">';
+	$output .= '<h4>📊 Site Statistics</h4>';
+	$output .= '<ul>';
+	$output .= '<li><span class="stat-label">Total Users:</span> <span class="stat-count">' . $total_users . '</span></li>';
+	$output .= '<li><span class="stat-label">Total ' . esc_html($pages_label) . ' Read:</span> <span class="stat-count">' . $total_pages_read_formatted . '</span></li>';
+	$output .= '<li><span class="stat-label">Total ' . esc_html($books_label) . ' Completed:</span> <span class="stat-count">' . $total_books_read_formatted . '</span></li>';
+	$output .= '</ul>';
+	$output .= '</div>';
+	// --- End Global Site Statistics Section ---
+	
+	$output .= '</div>';
+
 	return $output;
 }
+
 add_shortcode('points_leaderboard', 'hs_points_leaderboard_shortcode');
 
 // TODO: Fix this garbage so it calculates read pages, not pages in books submitted
