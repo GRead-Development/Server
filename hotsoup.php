@@ -87,6 +87,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/authors_series_display.php';
 // Database repair utilities
 require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
 
+require_once plugin_dir_path(__FILE__) . 'includes/random_book.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/random_book.php';
+
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );
 register_activation_hook(__FILE__, 'hs_reading_sessions_create_table');
