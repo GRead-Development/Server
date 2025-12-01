@@ -18,6 +18,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/book_merger.php';
 require_once plugin_dir_path(__FILE__) . 'includes/user_isbn_selector.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/book_merger.php';
 require_once plugin_dir_path(__FILE__) . 'includes/statistics.php';
+require_once plugin_dir_path(__FILE__) . 'includes/user_books_migration.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/social_auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/authors.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/books.php';
@@ -263,6 +264,8 @@ function hs_activate()
             book_id BIGINT(20) UNSIGNED NOT NULL,
             current_page MEDIUMINT(9) DEFAULT 0 NOT NULL,
             status VARCHAR(20) DEFAULT 'reading' NOT NULL,
+            date_added DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            date_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
             PRIMARY KEY (id),
             UNIQUE KEY user_book_unique (user_id, book_id))
             $charset_collate;";
