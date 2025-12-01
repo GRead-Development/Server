@@ -103,14 +103,14 @@ function hs_add_social_auth_to_login_page()
 
 	<div class="hs-login-social">
 	  <?php if ($apple_enabled): ?>
-        <button class="hs-social-btn hs-apple-signin-btn" data-mode="signin" style="width: 100%; margin-bottom: 10px;">
+        <button type="button" class="hs-social-btn hs-apple-signin-btn" data-mode="signin" style="width: 100%; margin-bottom: 10px;">
             Sign in with Apple
         </button>
         <?php endif; ?>
 
         <?php if ($google_enabled): ?>
         <div id="hs-google-signin-button"></div>
-        <button class="hs-social-btn hs-google-signin-btn" data-mode="signin" style="display: none;">
+        <button type="button" class="hs-social-btn hs-google-signin-btn" data-mode="signin" style="display: none;">
             Sign in with Google
         </button>
         <?php endif; ?>
@@ -170,14 +170,14 @@ function hs_add_social_auth_to_register_page()
 
 	<div class="hs-login-social">
 	  <?php if ($apple_enabled): ?>
-        <button class="hs-social-btn hs-apple-signin-btn" data-mode="register" style="width: 100%; margin-bottom: 10px;">
+        <button type="button" class="hs-social-btn hs-apple-signin-btn" data-mode="register" style="width: 100%; margin-bottom: 10px;">
             Sign up with Apple
         </button>
         <?php endif; ?>
 
         <?php if ($google_enabled): ?>
         <div id="hs-google-signin-button"></div>
-        <button class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
+        <button type="button" class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
             Sign up with Google
         </button>
         <?php endif; ?>
@@ -481,14 +481,14 @@ function hs_signin_form_shortcode($atts) {
         <h2>Sign In</h2>
 
         <?php if ($apple_enabled): ?>
-        <button class="hs-social-btn hs-apple-signin-btn" data-mode="signin">
+        <button type="button" class="hs-social-btn hs-apple-signin-btn" data-mode="signin">
             Sign in with Apple
         </button>
         <?php endif; ?>
 
         <?php if ($google_enabled): ?>
         <div id="hs-google-signin-button"></div>
-        <button class="hs-social-btn hs-google-signin-btn" data-mode="signin" style="display: none;">
+        <button type="button" class="hs-social-btn hs-google-signin-btn" data-mode="signin" style="display: none;">
             Sign in with Google
         </button>
         <?php endif; ?>
@@ -539,14 +539,14 @@ function hs_registration_form_shortcode($atts) {
         <h2>Create Account</h2>
 
         <?php if ($apple_enabled): ?>
-        <button class="hs-social-btn hs-apple-signin-btn" data-mode="register">
+        <button type="button" class="hs-social-btn hs-apple-signin-btn" data-mode="register">
             Sign up with Apple
         </button>
         <?php endif; ?>
 
         <?php if ($google_enabled): ?>
         <div id="hs-google-signin-button"></div>
-        <button class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
+        <button type="button" class="hs-social-btn hs-google-signin-btn" data-mode="register" style="display: none;">
             Sign up with Google
         </button>
         <?php endif; ?>

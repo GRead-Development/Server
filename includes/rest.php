@@ -547,15 +547,22 @@ function gread_add_book_to_library($request) {
             'user_id' => $user_id,
             'book_id' => $book_id,
             'current_page' => 0,
-            'status' => 'reading'
+            'status' => 'reading',
+            'date_added' => current_time('mysql'),
+            'date_updated' => current_time('mysql')
         ),
-        array('%d', '%d', '%d', '%s')
+        array('%d', '%d', '%d', '%s', '%s', '%s')
     );
-    
+
     if ($result === false) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
-    
+
+    // Track the activity
+    if (function_exists('hs_track_library_activity')) {
+        hs_track_library_activity($user_id, $book_id, 'added');
+    }
+
     return rest_ensure_response(array('success' => true, 'message' => 'Book added to library'));
 }
 
@@ -571,21 +578,29 @@ function gread_update_reading_progress($request) {
     // Update progress
     $result = $wpdb->update(
         $table_name,
-        array('current_page' => $current_page),
+        array(
+            'current_page' => $current_page,
+            'date_updated' => current_time('mysql')
+        ),
         array('user_id' => $user_id, 'book_id' => $book_id),
-        array('%d'),
+        array('%d', '%s'),
         array('%d', '%d')
     );
-    
+
     if ($result === false) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
-    
+
+    // Track the activity
+    if (function_exists('hs_track_library_activity')) {
+        hs_track_library_activity($user_id, $book_id, 'progress_update', json_encode(array('page' => $current_page)));
+    }
+
     // Update user stats
     if (function_exists('hs_update_user_stats')) {
         hs_update_user_stats($user_id);
     }
-    
+
     return rest_ensure_response(array('success' => true, 'message' => 'Progress updated'));
 }
 
@@ -602,11 +617,16 @@ function gread_remove_book_from_library($request) {
         array('user_id' => $user_id, 'book_id' => $book_id),
         array('%d', '%d')
     );
-    
+
     if ($result === false) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
-    
+
+    // Track the removal activity
+    if (function_exists('hs_track_library_activity')) {
+        hs_track_library_activity($user_id, $book_id, 'removed');
+    }
+
     return rest_ensure_response(array('success' => true, 'message' => 'Book removed from library'));
 }
 
