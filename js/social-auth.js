@@ -100,11 +100,30 @@
      * Handle Apple Sign-In response
      */
     function handleAppleResponse(response, mode) {
+        // Decode JWT to get Apple User ID
+        const idToken = response.authorization.id_token;
+        const appleUserID = parseJwt(idToken).sub;
+
+        // Extract user information (only provided on first sign-in)
+        let email = '';
+        let fullName = '';
+
+        if (response.user) {
+            email = response.user.email || '';
+
+            if (response.user.name) {
+                const firstName = response.user.name.firstName || '';
+                const lastName = response.user.name.lastName || '';
+                fullName = (firstName + ' ' + lastName).trim();
+            }
+        }
+
         const authData = {
             provider: 'apple',
-            id_token: response.authorization.id_token,
-            code: response.authorization.code,
-            user: response.user || null
+            appleUserID: appleUserID,
+            email: email,
+            fullName: fullName,
+            id_token: idToken
         };
 
         authState.authData = authData;
@@ -117,6 +136,23 @@
         } else {
             // For sign-in, send to backend
             sendAuthToBackend(authData, mode);
+        }
+    }
+
+    /**
+     * Parse JWT token to extract payload
+     */
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (error) {
+            console.error('Failed to parse JWT:', error);
+            return {};
         }
     }
 
@@ -330,7 +366,16 @@
     function sendAuthToBackend(authData, mode) {
         showLoading(mode === 'register' ? 'Creating your account...' : 'Signing you in...');
 
-        const endpoint = mode === 'register' ? '/auth/register' : '/auth/signin';
+        // Use provider-specific endpoints
+        let endpoint;
+        if (authData.provider === 'apple') {
+            endpoint = mode === 'register' ? '/auth/apple/register' : '/auth/apple/login';
+        } else if (authData.provider === 'google') {
+            endpoint = mode === 'register' ? '/auth/register' : '/auth/signin';
+        } else {
+            showError('Invalid authentication provider.');
+            return;
+        }
 
         $.ajax({
             url: config.apiUrl + endpoint,
@@ -360,8 +405,12 @@
                     errorMessage = xhr.responseJSON.message;
                 } else if (xhr.status === 400) {
                     errorMessage = 'Invalid request. Please try again.';
+                } else if (xhr.status === 404) {
+                    errorMessage = mode === 'register'
+                        ? 'Registration failed. Please try again.'
+                        : 'No account found. Please register first.';
                 } else if (xhr.status === 409) {
-                    errorMessage = 'An account with this email already exists.';
+                    errorMessage = 'An account with this information already exists.';
                 }
 
                 showError(errorMessage);
