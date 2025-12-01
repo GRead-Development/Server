@@ -1,6 +1,7 @@
 <?php
 // Register the ISBN lookup endpoint
 add_action('rest_api_init', function() {
+    // Legacy endpoint - fetches from OpenLibrary server-side (can cause rate limiting)
     register_rest_route('gread/v1', '/books/isbn', array(
         'methods' => 'GET',
         'callback' => 'gread_handle_isbn_lookup',
@@ -14,10 +15,33 @@ add_action('rest_api_init', function() {
             )
         )
     ));
+
+    // New endpoint - accepts book data from client (client fetches from OpenLibrary)
+    // This avoids rate limiting by using the user's IP instead of the server's IP
+    register_rest_route('gread/v1', '/books/import', array(
+        'methods' => 'POST',
+        'callback' => 'gread_handle_client_import',
+        'permission_callback' => 'is_user_logged_in',
+        'args' => array(
+            'isbn' => array(
+                'required' => true,
+                'type' => 'string',
+                'sanitize_callback' => 'sanitize_text_field',
+                'description' => 'ISBN number'
+            ),
+            'book_data' => array(
+                'required' => true,
+                'type' => 'object',
+                'description' => 'Book data from OpenLibrary API'
+            )
+        )
+    ));
 });
 
 /**
- * Handle ISBN lookup and book import
+ * Handle ISBN lookup and book import (Legacy - server-side fetch)
+ * Note: This endpoint fetches from OpenLibrary server-side, which can cause rate limiting.
+ * Consider using /books/import endpoint instead for client-side fetching.
  */
 function gread_handle_isbn_lookup($request) {
     $isbn = $request->get_param('isbn');
@@ -58,7 +82,67 @@ function gread_handle_isbn_lookup($request) {
             hs_update_user_stats($user_id);
         }
     }
-    
+
+    // Return the created book
+    $book = gread_get_book_by_post_id($book_post_id);
+    return gread_format_book_response($book);
+}
+
+/**
+ * Handle book import from client-provided data (avoids server-side rate limiting)
+ * Client should fetch from OpenLibrary API directly and send the data here.
+ *
+ * Expected flow:
+ * 1. Client fetches: GET https://openlibrary.org/api/books?bibkeys=ISBN:{isbn}&format=json&jscmd=data
+ * 2. Client sends the book data to this endpoint: POST /wp-json/gread/v1/books/import
+ *
+ * This approach uses the user's IP address for OpenLibrary requests instead of the server's IP,
+ * avoiding rate limiting issues.
+ */
+function gread_handle_client_import($request) {
+    $isbn = $request->get_param('isbn');
+    $book_data = $request->get_param('book_data');
+
+    // Clean ISBN
+    $clean_isbn = preg_replace('/[^0-9X-]/', '', $isbn);
+    if (empty($clean_isbn)) {
+        return new WP_Error(
+            'invalid_isbn',
+            'Invalid ISBN format',
+            array('status' => 400)
+        );
+    }
+
+    // Validate book data
+    if (empty($book_data) || !is_array($book_data)) {
+        return new WP_Error(
+            'invalid_book_data',
+            'Invalid or missing book data',
+            array('status' => 400)
+        );
+    }
+
+    // Check if book already exists in database
+    $existing_book = gread_find_book_by_isbn($clean_isbn);
+    if ($existing_book) {
+        return gread_format_book_response($existing_book);
+    }
+
+    // Create book post from client-provided data
+    $book_post_id = gread_create_book_post($book_data, $clean_isbn);
+    if (is_wp_error($book_post_id)) {
+        return $book_post_id;
+    }
+
+    // Update user's book count and statistics
+    $user_id = get_current_user_id();
+    if ($user_id && function_exists('hs_increment_books_added')) {
+        hs_increment_books_added($user_id);
+        if (function_exists('hs_update_user_stats')) {
+            hs_update_user_stats($user_id);
+        }
+    }
+
     // Return the created book
     $book = gread_get_book_by_post_id($book_post_id);
     return gread_format_book_response($book);
