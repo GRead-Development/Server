@@ -1,0 +1,397 @@
+/**
+ * API Endpoints Admin Panel Styles
+ *
+ * Styles for the API endpoints admin panel
+ *
+ * @package HotSoup
+ * @since 1.0.0
+ */
+
+/* Main Container */
+.hotsoup-api-endpoints-wrap {
+    margin: 20px 20px 20px 0;
+}
+
+.hotsoup-api-endpoints-wrap h1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 23px;
+    font-weight: 400;
+    margin: 0 0 20px 0;
+    padding: 9px 0 4px 0;
+    line-height: 1.3;
+}
+
+.hotsoup-api-endpoints-wrap h1 .dashicons {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #2271b1;
+}
+
+/* Header Section */
+.hotsoup-api-endpoints-header {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Statistics */
+.hotsoup-api-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 25px;
+    background: #f6f7f7;
+    border-radius: 4px;
+    min-width: 100px;
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 600;
+    color: #2271b1;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #646970;
+    margin-top: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Actions */
+.hotsoup-api-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.hotsoup-api-actions .button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hotsoup-api-actions .button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Filters */
+.hotsoup-api-filters {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.hotsoup-api-filters #search-endpoints {
+    flex: 1;
+    min-width: 250px;
+}
+
+.hotsoup-api-filters select {
+    min-width: 150px;
+}
+
+/* Loading Indicator */
+.hotsoup-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Endpoints Container */
+.hotsoup-endpoints-container {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Endpoints Table */
+.hotsoup-endpoints-table {
+    border: none;
+}
+
+.hotsoup-endpoints-table th {
+    background: #f6f7f7;
+    font-weight: 600;
+    padding: 12px;
+}
+
+.hotsoup-endpoints-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+/* Column Widths */
+.column-method {
+    width: 100px;
+}
+
+.column-route {
+    width: auto;
+}
+
+.column-description {
+    width: 35%;
+}
+
+.column-auth {
+    width: 100px;
+}
+
+.column-actions {
+    width: 100px;
+    text-align: center;
+}
+
+/* Method Badges */
+.method-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #fff;
+}
+
+.method-get {
+    background: #61affe;
+}
+
+.method-post {
+    background: #49cc90;
+}
+
+.method-put {
+    background: #fca130;
+}
+
+.method-delete {
+    background: #f93e3e;
+}
+
+.method-patch {
+    background: #50e3c2;
+}
+
+/* Auth Badges */
+.auth-required {
+    color: #d63638;
+    font-weight: 600;
+}
+
+.auth-public {
+    color: #00a32a;
+    font-weight: 600;
+}
+
+/* Code blocks */
+code {
+    background: #f6f7f7;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    color: #d63638;
+}
+
+/* Details Section */
+.endpoint-details {
+    background: #f9f9f9;
+}
+
+.endpoint-details td {
+    padding: 0 !important;
+}
+
+.endpoint-details-content {
+    padding: 20px;
+}
+
+.details-section {
+    margin-bottom: 25px;
+}
+
+.details-section:last-child {
+    margin-bottom: 0;
+}
+
+.details-section h3 {
+    margin: 0 0 15px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1d2327;
+    border-bottom: 2px solid #2271b1;
+    padding-bottom: 8px;
+}
+
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+}
+
+.details-table th,
+.details-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #c3c4c7;
+}
+
+.details-table th {
+    background: #f6f7f7;
+    font-weight: 600;
+    width: 200px;
+}
+
+.details-table tr:last-child th,
+.details-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Parameters Table */
+.params-table {
+    width: 100%;
+}
+
+.params-table th {
+    width: auto;
+    background: #f6f7f7;
+}
+
+.params-table tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* Pre/Code blocks in details */
+.details-section pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0;
+}
+
+.details-section pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* Buttons */
+.view-details {
+    cursor: pointer;
+}
+
+/* Spin animation for refresh */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.dashicons.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 782px) {
+    .hotsoup-api-stats {
+        gap: 10px;
+    }
+
+    .stat-box {
+        padding: 10px 15px;
+        min-width: 80px;
+    }
+
+    .stat-number {
+        font-size: 24px;
+    }
+
+    .stat-label {
+        font-size: 11px;
+    }
+
+    .hotsoup-api-actions {
+        width: 100%;
+    }
+
+    .hotsoup-api-actions .button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .hotsoup-api-filters {
+        flex-direction: column;
+    }
+
+    .hotsoup-api-filters #search-endpoints,
+    .hotsoup-api-filters select {
+        width: 100%;
+    }
+
+    .column-description {
+        display: none;
+    }
+}
+
+/* Notice styles */
+.hotsoup-api-endpoints-wrap .notice {
+    margin: 15px 0;
+}
+
+/* No results message */
+.no-results-message td {
+    color: #646970;
+    font-style: italic;
+}
+
+/* Table hover effect */
+.hotsoup-endpoints-table tbody tr.endpoint-row:hover {
+    background: #f6f7f7;
+}
+
+/* Highlight active details row */
+.endpoint-details:visible {
+    border-left: 3px solid #2271b1;
+}
