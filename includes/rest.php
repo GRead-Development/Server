@@ -454,6 +454,12 @@ function gread_register_rest_routes() {
         'permission_callback' => '__return_true'
     ));
 
+    register_rest_route('gread/v1', '/authors/(?P<author_id>\d+)/page', array(
+        'methods' => 'GET',
+        'callback' => 'gread_api_get_author_page',
+        'permission_callback' => '__return_true'
+    ));
+
 
 }
 add_action('rest_api_init', 'gread_register_rest_routes');
