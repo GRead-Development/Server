@@ -77,6 +77,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/book_directory.php
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/total_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/author_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/tags_manager.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/api_endpoints_panel.php';
 require_once plugin_dir_path(__FILE__) . 'includes/widgets/site_activity.php';
 require_once plugin_dir_path(__FILE__) . 'includes/gid.php';
 require_once plugin_dir_path(__FILE__) . 'includes/notes.php';
