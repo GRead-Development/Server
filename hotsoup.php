@@ -13,6 +13,10 @@ if (!defined('ABSPATH'))
     exit;
 }
 
+// Define plugin file constant for activation hooks
+if (!defined('HOTSOUP_PLUGIN_FILE')) {
+    define('HOTSOUP_PLUGIN_FILE', __FILE__);
+}
 
 require_once plugin_dir_path(__FILE__) . 'includes/book_merger.php';
 require_once plugin_dir_path(__FILE__) . 'includes/user_isbn_selector.php';
@@ -31,6 +35,10 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/apple_auth.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/chimera.php';
 require_once plugin_dir_path(__FILE__) . 'includes/auth/social_login.php';
 require_once plugin_dir_path(__FILE__) . 'includes/search/filter.php';
+// Pending books system (user-submitted books without ISBN)
+require_once plugin_dir_path(__FILE__) . 'includes/pending_books.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/pending_books.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/pending_books_review.php';
 // The importer form
 require_once plugin_dir_path(__FILE__) . 'includes/importer.php';
 // Stuff required for the book database to function. The most important functions in HotSoup are in this file.
@@ -76,6 +84,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/my_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/book_directory.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/total_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/author_books.php';
+require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/submit_book.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/tags_manager.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/api_endpoints_panel.php';
 require_once plugin_dir_path(__FILE__) . 'includes/widgets/site_activity.php';
