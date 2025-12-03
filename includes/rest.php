@@ -66,6 +66,55 @@ function gread_register_rest_routes() {
         )
     ));
 
+    register_rest_route('gread/v1', '/library/dnf', array(
+        'methods' => 'POST',
+        'callback' => 'gread_mark_book_dnf',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'book_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            ),
+            'reason' => array(
+                'required' => true,
+                'sanitize_callback' => 'sanitize_textarea_field',
+                'validate_callback' => function($param) {
+                    return !empty(trim($param));
+                }
+            )
+        )
+    ));
+
+    register_rest_route('gread/v1', '/library/pause', array(
+        'methods' => 'POST',
+        'callback' => 'gread_pause_book',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'book_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            )
+        )
+    ));
+
+    register_rest_route('gread/v1', '/library/resume', array(
+        'methods' => 'POST',
+        'callback' => 'gread_resume_book',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'book_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            )
+        )
+    ));
+
     register_rest_route('gread/v1', '/user/(?P<id>\d+)/stats', array(
         'methods' => 'GET',
         'callback' => 'gread_get_user_stats',
@@ -536,7 +585,7 @@ function gread_get_user_library($request) {
 
             if (!$book) continue;
 
-            $result[] = array(
+            $book_data = array(
                 'id' => intval($user_book->id),
                 'is_pending' => false,
                 'book' => array(
@@ -550,6 +599,20 @@ function gread_get_user_library($request) {
                 'current_page' => intval($user_book->current_page),
                 'status' => $user_book->status
             );
+
+            // If book is DNF, include the DNF information
+            if ($user_book->status === 'dnf' && function_exists('hs_get_dnf_reason')) {
+                $dnf_data = hs_get_dnf_reason($user_id, $book_id);
+                if ($dnf_data) {
+                    $book_data['dnf'] = array(
+                        'reason' => $dnf_data['reason'],
+                        'pages_read' => intval($dnf_data['pages_read']),
+                        'date_dnf' => $dnf_data['date_dnf']
+                    );
+                }
+            }
+
+            $result[] = $book_data;
         }
     }
 
@@ -679,6 +742,70 @@ function gread_remove_book_from_library($request) {
     }
 
     return rest_ensure_response(array('success' => true, 'message' => 'Book removed from library'));
+}
+
+/**
+ * API Callback: Mark Book as DNF
+ * POST /gread/v1/library/dnf
+ */
+function gread_mark_book_dnf($request) {
+    $user_id = get_current_user_id();
+    $book_id = intval($request['book_id']);
+    $reason = sanitize_textarea_field($request['reason']);
+
+    if (!function_exists('hs_mark_book_dnf')) {
+        return new WP_Error('function_not_found', 'DNF functionality not available', array('status' => 500));
+    }
+
+    $result = hs_mark_book_dnf($user_id, $book_id, $reason);
+
+    if (!$result['success']) {
+        return new WP_Error('dnf_failed', $result['message'], array('status' => 400));
+    }
+
+    return rest_ensure_response($result);
+}
+
+/**
+ * API Callback: Pause Book
+ * POST /gread/v1/library/pause
+ */
+function gread_pause_book($request) {
+    $user_id = get_current_user_id();
+    $book_id = intval($request['book_id']);
+
+    if (!function_exists('hs_pause_book')) {
+        return new WP_Error('function_not_found', 'Pause functionality not available', array('status' => 500));
+    }
+
+    $result = hs_pause_book($user_id, $book_id);
+
+    if (!$result['success']) {
+        return new WP_Error('pause_failed', $result['message'], array('status' => 400));
+    }
+
+    return rest_ensure_response($result);
+}
+
+/**
+ * API Callback: Resume Book
+ * POST /gread/v1/library/resume
+ */
+function gread_resume_book($request) {
+    $user_id = get_current_user_id();
+    $book_id = intval($request['book_id']);
+
+    if (!function_exists('hs_resume_book')) {
+        return new WP_Error('function_not_found', 'Resume functionality not available', array('status' => 500));
+    }
+
+    $result = hs_resume_book($user_id, $book_id);
+
+    if (!$result['success']) {
+        return new WP_Error('resume_failed', $result['message'], array('status' => 400));
+    }
+
+    return rest_ensure_response($result);
 }
 
 /**

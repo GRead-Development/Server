@@ -102,6 +102,11 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
 require_once plugin_dir_path(__FILE__) . 'includes/random_book.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/random_book.php';
 
+// DNF and Pause functionality
+require_once plugin_dir_path(__FILE__) . 'includes/dnf_pause.php';
+// Migration for activity enum
+require_once plugin_dir_path(__FILE__) . 'includes/migrations/update_activity_enum.php';
+
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );
 register_activation_hook(__FILE__, 'hs_reading_sessions_create_table');
@@ -113,6 +118,7 @@ register_activation_hook(__FILE__, 'hs_book_tags_create_table');
 register_activation_hook(__FILE__, 'hs_book_notes_activate');
 register_activation_hook(__FILE__, 'hs_authors_series_activate');
 register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
+register_activation_hook(__FILE__, 'hs_dnf_books_create_table');
 
 // On activation, set up the reviews table
 function hs_reviews_activate()
