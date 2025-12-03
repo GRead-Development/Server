@@ -717,7 +717,7 @@ add_action('admin_menu', 'hs_achievement_debug_add_submenu');
 // Debug page HTML
 function hs_achievement_debug_page_html() {
     global $wpdb;
-    
+
     // Handle manual check trigger
     if (isset($_POST['check_user_achievements']) && isset($_POST['user_id']) && wp_verify_nonce($_POST['_wpnonce'], 'hs_debug_check_achievements')) {
         $user_id = intval($_POST['user_id']);
@@ -734,6 +734,16 @@ function hs_achievement_debug_page_html() {
             $count++;
         }
         echo '<div class="notice notice-success"><p>Achievement check completed for ' . $count . ' users!</p></div>';
+    }
+
+    // Handle recalculate note counts
+    if (isset($_POST['recalculate_note_counts']) && wp_verify_nonce($_POST['_wpnonce'], 'hs_debug_recalculate_notes')) {
+        if (function_exists('hs_recalculate_all_note_counts')) {
+            $updated_count = hs_recalculate_all_note_counts();
+            echo '<div class="notice notice-success"><p>Note counts recalculated for ' . $updated_count . ' users! Achievements have been checked for all users.</p></div>';
+        } else {
+            echo '<div class="notice notice-error"><p>Note recalculation function not found.</p></div>';
+        }
     }
     
     // Get selected user
@@ -905,6 +915,24 @@ function hs_achievement_debug_page_html() {
                 <?php wp_nonce_field('hs_debug_check_all'); ?>
                 <button type="submit" name="check_all_users" class="button button-secondary button-large">
                     🔄 Check Achievements for All Users
+                </button>
+            </form>
+        </div>
+
+        <!-- Recalculate Note Counts -->
+        <div class="card" style="max-width: 800px; margin-top: 20px; border-left: 4px solid #0073aa;">
+            <h2 style="color: #0073aa;">📝 Note Count Initialization</h2>
+            <p>This tool will recalculate note counts for all users based on existing notes in the database. Use this if you just enabled note tracking for achievements.</p>
+            <p><strong>What it does:</strong></p>
+            <ul>
+                <li>Counts all existing notes for each user</li>
+                <li>Updates the hs_notes_created_count user meta</li>
+                <li>Automatically checks for achievements that may be unlocked</li>
+            </ul>
+            <form method="post" onsubmit="return confirm('Are you sure you want to recalculate note counts for ALL users?');">
+                <?php wp_nonce_field('hs_debug_recalculate_notes'); ?>
+                <button type="submit" name="recalculate_note_counts" class="button button-primary button-large">
+                    📊 Recalculate All Note Counts
                 </button>
             </form>
         </div>
