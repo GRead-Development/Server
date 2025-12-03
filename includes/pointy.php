@@ -80,6 +80,9 @@ function award_points($user_id, $points_awarded = 1)
 	$current_points = (int)get_user_meta($user_id, $meta_key, true);
 	$new_points = $current_points + $points_awarded;
 	update_user_meta($user_id, $meta_key, $new_points);
+
+	// Trigger action for achievement checking
+	do_action('hs_points_updated', $user_id);
 }
 
 

@@ -109,6 +109,8 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/random_book.php';
 require_once plugin_dir_path(__FILE__) . 'includes/dnf_pause.php';
 // Migration for activity enum
 require_once plugin_dir_path(__FILE__) . 'includes/migrations/update_activity_enum.php';
+// Multi-step achievements with GID tracking
+require_once plugin_dir_path(__FILE__) . 'includes/multistep_achievements.php';
 
 register_activation_hook(__FILE__, 'hs_gid_activate');
 register_activation_hook( __FILE__, 'hs_achievements_create_table' );
@@ -122,6 +124,7 @@ register_activation_hook(__FILE__, 'hs_book_notes_activate');
 register_activation_hook(__FILE__, 'hs_authors_series_activate');
 register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
 register_activation_hook(__FILE__, 'hs_dnf_books_create_table');
+register_activation_hook(__FILE__, 'hs_multistep_achievements_create_tables');
 
 // On activation, set up the reviews table
 function hs_reviews_activate()
