@@ -61,14 +61,13 @@ function hs_achievements_create_table()
 // Add the achievement manager to the administrator panel
 function hs_achievements_add_admin_page()
 {
-	add_menu_page(
-	'Achievement Manager',
-	'Achievements',
-	'manage_options',
-	'hs-achievement-manager',
-	'hs_achievements_admin_page_html',
-	'dashicons-awards',
-	27
+	add_submenu_page(
+		'hotsoup-admin',
+		'Achievement Manager',
+		'Achievements',
+		'manage_options',
+		'hs-achievement-manager',
+		'hs_achievements_admin_page_html'
 	);
 }
 add_action('admin_menu', 'hs_achievements_add_admin_page');

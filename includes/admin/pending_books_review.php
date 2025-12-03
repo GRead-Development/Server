@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
 function hs_register_pending_books_admin_menu()
 {
     add_submenu_page(
-        'edit.php?post_type=book',
+        'hotsoup-admin',
         'Pending Books',
         'Pending Books',
         'manage_options',

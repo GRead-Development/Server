@@ -17,7 +17,7 @@ add_action('admin_menu', 'hs_authors_series_admin_menu');
 function hs_authors_series_admin_menu()
 {
 	add_submenu_page(
-		'edit.php?post_type=book',
+		'hotsoup-admin',
 		'Authors and Series Manager',
 		'Authors/Series',
 		'manage_options',

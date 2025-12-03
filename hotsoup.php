@@ -99,6 +99,9 @@ require_once plugin_dir_path(__FILE__) . 'includes/authors_series_display.php';
 // Database repair utilities
 require_once plugin_dir_path(__FILE__) . 'includes/admin/database_repair.php';
 
+// Admin menu consolidation
+require_once plugin_dir_path(__FILE__) . 'includes/admin/menu_consolidation.php';
+
 require_once plugin_dir_path(__FILE__) . 'includes/random_book.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/random_book.php';
 
@@ -399,9 +402,9 @@ function hs_enqueue()
 
     {
 
-        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css');
+        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css', [], '1.2');
 
-        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.1', true);
+        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.2', true);
 
 
         // Pass the data to JS

@@ -202,14 +202,13 @@ register_activation_hook(__FILE__, 'hs_themes_create_table');
 
 // Add Theme Manager to admin menu
 function hs_themes_add_admin_page() {
-    add_menu_page(
+    add_submenu_page(
+        'hotsoup-admin',
         'Theme Manager',
-        'Theme Manager',
+        'Themes',
         'manage_options',
         'hs-theme-manager',
-        'hs_themes_admin_page_html',
-        'dashicons-admin-appearance',
-        26
+        'hs_themes_admin_page_html'
     );
 }
 add_action('admin_menu', 'hs_themes_add_admin_page');
