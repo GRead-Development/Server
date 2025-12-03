@@ -21,7 +21,7 @@ function hs_create_activity_tracking_table()
 		user_id bigint(20) unsigned NOT NULL,
 		book_id bigint(20) unsigned NOT NULL,
 		activity_type
-	enum('added', 'started', 'completed', 'removed', 'progress_update') NOT NULL,
+	enum('added', 'started', 'completed', 'removed', 'progress_update', 'dnf', 'paused', 'resumed') NOT NULL,
 		activity_data text DEFAULT NULL,
 		created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (id),
