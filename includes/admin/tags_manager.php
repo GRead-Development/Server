@@ -47,9 +47,9 @@ function hs_book_tags_admin_menu()
 	*/
 
 	add_submenu_page(
-		'tools.php',
+		'hotsoup-admin',
 		'Book Tags Manager',
-		'Book Tags Manager',
+		'Book Tags',
 		'manage_options',
 		'hs-book-tags',
 		'hs_book_tags_admin_page'

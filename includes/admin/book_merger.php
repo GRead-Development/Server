@@ -14,7 +14,7 @@ add_action('admin_menu', 'hs_book_merge_admin_menu');
 function hs_book_merge_admin_menu()
 {
     add_submenu_page(
-        'edit.php?post_type=book',
+        'hotsoup-admin',
         'Book Merge & ISBN Manager',
         'Book Merge/ISBN',
         'manage_options',

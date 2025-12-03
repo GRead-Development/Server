@@ -15,9 +15,9 @@ add_action('admin_menu', 'hs_database_repair_menu');
 
 function hs_database_repair_menu() {
     add_submenu_page(
-        'tools.php',
+        'hotsoup-admin',
         'HotSoup Database Repair',
-        'HotSoup DB Repair',
+        'Database Repair',
         'manage_options',
         'hs-database-repair',
         'hs_database_repair_page'
