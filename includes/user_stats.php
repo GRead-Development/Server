@@ -157,6 +157,28 @@ function hs_decrement_books_added($user_id)
 }
 
 
+// Calculate and update the note count for a user from the database
+function hs_calculate_notes_created($user_id)
+{
+	if (!$user_id)
+	{
+		return 0;
+	}
+
+	global $wpdb;
+	$notes_table = $wpdb->prefix . 'hs_book_notes';
+
+	$count = (int)$wpdb->get_var($wpdb->prepare(
+		"SELECT COUNT(*) FROM $notes_table WHERE user_id = %d",
+		$user_id
+	));
+
+	update_user_meta($user_id, 'hs_notes_created_count', $count);
+
+	return $count;
+}
+
+
 // Increment the count of notes created by a given user
 function hs_increment_notes_created($user_id)
 {
@@ -187,35 +209,72 @@ function hs_decrement_notes_created($user_id)
 }
 
 /**
+ * Recalculate note counts for all users from the database
+ * Useful for initializing counts after the feature is added
+ */
+function hs_recalculate_all_note_counts()
+{
+	global $wpdb;
+	$notes_table = $wpdb->prefix . 'hs_book_notes';
+
+	// Get all users who have created notes
+	$user_note_counts = $wpdb->get_results(
+		"SELECT user_id, COUNT(*) as note_count
+		FROM $notes_table
+		GROUP BY user_id"
+	);
+
+	$updated_count = 0;
+	foreach ($user_note_counts as $row) {
+		update_user_meta($row->user_id, 'hs_notes_created_count', intval($row->note_count));
+		$updated_count++;
+
+		// Trigger achievement check for this user
+		do_action('hs_stats_updated', $row->user_id);
+	}
+
+	return $updated_count;
+}
+
+
+/**
  * Calculates site-wide totals and stores them in a WordPress Option.
  * This is intended to be called by the scheduled WP-Cron job.
  */
 function hs_calculate_site_wide_stats()
 {
     global $wpdb;
-    
+
     // Total Pages Read across all users
     $total_pages_read = $wpdb->get_var("
-        SELECT SUM(CAST(meta_value AS UNSIGNED)) 
-        FROM {$wpdb->usermeta} 
+        SELECT SUM(CAST(meta_value AS UNSIGNED))
+        FROM {$wpdb->usermeta}
         WHERE meta_key = 'hs_total_pages_read'
     ");
 
     // Total Completed Books across all users
     $total_books_read = $wpdb->get_var("
-        SELECT SUM(CAST(meta_value AS UNSIGNED)) 
-        FROM {$wpdb->usermeta} 
+        SELECT SUM(CAST(meta_value AS UNSIGNED))
+        FROM {$wpdb->usermeta}
         WHERE meta_key = 'hs_completed_books_count'
     ");
-    
+
+    // Total Notes Created across all users
+    $total_notes_created = $wpdb->get_var("
+        SELECT SUM(CAST(meta_value AS UNSIGNED))
+        FROM {$wpdb->usermeta}
+        WHERE meta_key = 'hs_notes_created_count'
+    ");
+
     $user_counts = count_users();
     $total_users = $user_counts['total_users'];
 
 
     $stats = [
-        'total_users'      => intval($total_users),
-        'total_pages_read' => intval($total_pages_read),
-        'total_books_read' => intval($total_books_read),
+        'total_users'        => intval($total_users),
+        'total_pages_read'   => intval($total_pages_read),
+        'total_books_read'   => intval($total_books_read),
+        'total_notes_created' => intval($total_notes_created),
     ];
 
     // Store the calculated array in a single WordPress option
