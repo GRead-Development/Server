@@ -1,0 +1,328 @@
+/* Book Submission Modal Styles */
+
+/* Modal Container */
+.hs-book-submit-modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    overflow: auto;
+    display: none;
+}
+
+.hs-book-submit-modal.active {
+    display: block;
+}
+
+.hs-book-modal-content {
+    background-color: #fefefe;
+    margin: 3% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 650px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.hs-book-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+    line-height: 1;
+}
+
+.hs-book-modal-close:hover,
+.hs-book-modal-close:focus {
+    color: #000;
+}
+
+/* Modal Header */
+.hs-book-modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 24px;
+    clear: both;
+}
+
+.hs-book-modal-content p.description {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Form Styles */
+.hs-book-form-group {
+    margin-bottom: 18px;
+}
+
+.hs-book-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.hs-book-form-group label .required {
+    color: #d63638;
+}
+
+.hs-book-form-group input[type="text"],
+.hs-book-form-group input[type="number"],
+.hs-book-form-group input[type="url"],
+.hs-book-form-group textarea,
+.hs-book-form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.3s;
+}
+
+.hs-book-form-group input:focus,
+.hs-book-form-group textarea:focus,
+.hs-book-form-group select:focus {
+    outline: none;
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+.hs-book-form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.hs-book-form-group small {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+    font-size: 12px;
+}
+
+.hs-book-form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 6px;
+}
+
+/* Form Actions */
+.hs-book-form-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
+}
+
+.hs-book-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.hs-book-button-primary {
+    background-color: #0073aa;
+    color: #fff;
+}
+
+.hs-book-button-primary:hover {
+    background-color: #005a87;
+}
+
+.hs-book-button-primary:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.hs-book-button-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.hs-book-button-secondary:hover {
+    background-color: #e0e0e0;
+}
+
+/* Messages */
+.hs-book-message {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.hs-book-message-success {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.hs-book-message-error {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.hs-book-message-info {
+    background-color: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+/* Pending Books List Modal */
+.hs-pending-books-modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    overflow: auto;
+    display: none;
+}
+
+.hs-pending-books-modal.active {
+    display: block;
+}
+
+.hs-pending-books-modal-content {
+    background-color: #fefefe;
+    margin: 3% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Pending Books Table */
+.hs-pending-books-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.hs-pending-books-table th,
+.hs-pending-books-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.hs-pending-books-table th {
+    background-color: #f5f5f5;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.hs-pending-books-table td {
+    font-size: 14px;
+}
+
+.hs-status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.hs-status-badge.pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.hs-status-badge.approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.hs-status-badge.rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.hs-book-title {
+    font-weight: 600;
+    color: #0073aa;
+}
+
+.hs-book-meta {
+    color: #666;
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.hs-no-submissions {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+/* Trigger Buttons */
+.hs-submit-book-trigger,
+.hs-my-submissions-trigger {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #0073aa;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.hs-submit-book-trigger:hover,
+.hs-my-submissions-trigger:hover {
+    background-color: #005a87;
+    color: #fff;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .hs-book-modal-content,
+    .hs-pending-books-modal-content {
+        width: 95%;
+        margin: 5% auto;
+        padding: 20px;
+    }
+
+    .hs-pending-books-table {
+        font-size: 12px;
+    }
+
+    .hs-pending-books-table th,
+    .hs-pending-books-table td {
+        padding: 8px;
+    }
+
+    .hs-book-form-actions {
+        flex-direction: column;
+    }
+
+    .hs-book-button {
+        width: 100%;
+    }
+}
