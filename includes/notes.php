@@ -50,7 +50,14 @@ function hs_create_book_note($user_id, $book_id, $note_text, $page_number = null
 		'date_updated' => current_time('mysql')
 	));
 
-	return $wpdb -> insert_id;
+	$note_id = $wpdb -> insert_id;
+
+	// Increment user's note count
+	if ($note_id && function_exists('hs_increment_notes_created')) {
+		hs_increment_notes_created($user_id);
+	}
+
+	return $note_id;
 }
 
 
@@ -148,7 +155,14 @@ function hs_delete_book_note($note_id)
 		return false;
 	}
 
-	return $wpdb -> delete($wpdb -> prefix . 'hs_book_notes', array('id' => intval($note_id)));
+	$result = $wpdb -> delete($wpdb -> prefix . 'hs_book_notes', array('id' => intval($note_id)));
+
+	// Decrement user's note count
+	if ($result && function_exists('hs_decrement_notes_created')) {
+		hs_decrement_notes_created($note->user_id);
+	}
+
+	return $result;
 }
 
 

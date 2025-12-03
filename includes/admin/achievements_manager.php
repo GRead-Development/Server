@@ -246,6 +246,7 @@ function hs_achievements_admin_page_html()
 								<option value="pages_read" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'pages_read' ? 'selected' : ''; ?>>Pages Read</option>
 								<option value="books_added" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_added' ? 'selected' : ''; ?>>Books Added to Database</option>
 								<option value="approved_reports" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'approved_reports' ? 'selected' : ''; ?>>Approved Reports</option>
+								<option value="notes_created" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'notes_created' ? 'selected' : ''; ?>>Notes Created</option>
 								<option value="author_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'author_read_count' ? 'selected' : ''; ?>>Books by Specific Author</option>
 							</select>
 						</div>
@@ -459,6 +460,7 @@ function hs_check_user_achievements($user_id)
         'pages_read' => 'hs_total_pages_read',
         'books_added' => 'hs_books_added_count',
         'approved_reports' => 'hs_approved_reports_count',
+        'notes_created' => 'hs_notes_created_count',
     ];
 
     $user_stats = [];
@@ -564,28 +566,20 @@ function hs_render_achievements_display()
 		$user_id
 	));
 
-	// Retrieve user statistics
-	$user_stats = [
-		'points' => (int) get_user_meta($user_id, 'user_points', true),
-		'books_read' => (int) get_user_meta($user_id, 'hs_completed_books_count', true),
-		'pages_read' => (int) get_user_meta($user_id, 'hs_total_pages_read', true),
-		'books_added' => (int) get_user_meta($user_id, 'hs_books_added_count', true),
-		'approved_reports' => (int) get_user_meta($user_id, 'hs_approved_reports_count', true),
+	$metric_map = [
+		'points' => 'user_points',
+		'books_read' => 'hs_completed_books_count',
+		'pages_read' => 'hs_total_pages_read',
+		'books_added' => 'hs_books_added_count',
+		'approved_reports' => 'hs_approved_reports_count',
+		'notes_created' => 'hs_notes_created_count',
 	];
 
-	        $metric_map = [
-                'points' => 'user_points',
-                'books_read' => 'hs_completed_books_count',
-                'pages_read' => 'hs_total_pages_read',
-                'books_added' => 'hs_books_added_count',
-                'approved_reports' => 'hs_approved_reports_count',
-        ];
-
-        // Retrieve user statistics
-        $user_stats = [];
-        foreach ($metric_map as $metric => $meta_key) {
-                $user_stats[$metric] = (int) get_user_meta($user_id, $meta_key, true);
-        }
+	// Retrieve user statistics
+	$user_stats = [];
+	foreach ($metric_map as $metric => $meta_key) {
+		$user_stats[$metric] = (int) get_user_meta($user_id, $meta_key, true);
+	}
 
 
 	$unlocked_count = 0;
@@ -780,6 +774,7 @@ function hs_achievement_debug_page_html() {
                 'pages_read' => 'hs_total_pages_read',
                 'books_added' => 'hs_books_added_count',
                 'approved_reports' => 'hs_approved_reports_count',
+                'notes_created' => 'hs_notes_created_count',
             ];
             
             // Get user stats
