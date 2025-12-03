@@ -65,6 +65,7 @@ function hs_display_user_stats()
 	$pages_read = get_user_meta($user_id, 'hs_total_pages_read', true) ?: 0;
 	$books_added = get_user_meta($user_id, 'hs_books_added_count', true) ?: 0;
 	$approved_reports = get_user_meta($user_id, 'hs_approved_reports_count', true) ?: 0;
+	$notes_created = get_user_meta($user_id, 'hs_notes_created_count', true) ?: 0;
 	?>
 
 
@@ -72,6 +73,7 @@ function hs_display_user_stats()
 	<div>Pages Read: <strong> <?php echo number_format_i18n($pages_read); ?> </strong></div>
 	<div>Books Added: <strong> <?php echo number_format_i18n($books_added); ?></strong><div>
 	<div>Approved Reports: <strong><?php echo number_format_i18n($approved_reports); ?></strong></div>
+	<div>Notes Created: <strong><?php echo number_format_i18n($notes_created); ?></strong></div>
 
 
 	<?php
@@ -150,6 +152,36 @@ function hs_decrement_books_added($user_id)
 
 	$current_count = (int)get_user_meta($user_id, 'hs_books_added_count', true);
 	update_user_meta($user_id, 'hs_books_added_count', max(0, $current_count - 1));
+
+	do_action('hs_stats_updated', $user_id);
+}
+
+
+// Increment the count of notes created by a given user
+function hs_increment_notes_created($user_id)
+{
+	if (!$user_id)
+	{
+		return;
+	}
+
+	$current_count = (int)get_user_meta($user_id, 'hs_notes_created_count', true);
+	update_user_meta($user_id, 'hs_notes_created_count', $current_count + 1);
+
+	do_action('hs_stats_updated', $user_id);
+}
+
+
+// Decrement the count of notes created by a given user
+function hs_decrement_notes_created($user_id)
+{
+	if (!$user_id)
+	{
+		return;
+	}
+
+	$current_count = (int)get_user_meta($user_id, 'hs_notes_created_count', true);
+	update_user_meta($user_id, 'hs_notes_created_count', max(0, $current_count - 1));
 
 	do_action('hs_stats_updated', $user_id);
 }
