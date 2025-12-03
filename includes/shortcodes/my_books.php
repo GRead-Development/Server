@@ -48,6 +48,16 @@ function hs_my_books_shortcode($atts)
 		$user_reviews[$review -> book_id] = $review;
 	}
 
+	// Retrieve DNF data
+	$dnf_table = $wpdb -> prefix . 'dnf_books';
+	$dnf_data_raw = $wpdb -> get_results($wpdb -> prepare("SELECT book_id, reason, pages_read, date_dnf FROM {$dnf_table} WHERE user_id = %d", $user_id));
+	$dnf_data = [];
+
+	foreach ($dnf_data_raw as $dnf)
+	{
+		$dnf_data[$dnf -> book_id] = $dnf;
+	}
+
     // Fetch all books for the current user
     $my_book_entries = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $table_name WHERE user_id = %d",
@@ -76,6 +86,12 @@ function hs_my_books_shortcode($atts)
 		$user_rating = $has_review ? $user_reviews[$book_entry -> book_id] -> rating : null;
 		$user_review_text = $has_review ? $user_reviews[$book_entry -> book_id] -> review_text : '';
 
+		// Get book status and DNF info
+		$status = isset($book_entry -> status) ? $book_entry -> status : 'reading';
+		$is_dnf = $status === 'dnf';
+		$is_paused = $status === 'paused';
+		$dnf_info = isset($dnf_data[$book_entry -> book_id]) ? $dnf_data[$book_entry -> book_id] : null;
+
             $all_books_data[] = [
                 'entry' => $book_entry,
                 'post' => $book,
@@ -86,7 +102,11 @@ function hs_my_books_shortcode($atts)
                 'author' => $author,
 		'has_review' => $has_review,
 		'user_rating' => $user_rating,
-		'user_review_text' => $user_review_text
+		'user_review_text' => $user_review_text,
+		'status' => $status,
+		'is_dnf' => $is_dnf,
+		'is_paused' => $is_paused,
+		'dnf_info' => $dnf_info
             ];
         }
     }
@@ -130,7 +150,11 @@ function hs_my_books_shortcode($atts)
     // Initialize HTML containers
     $reading_books_html = '';
     $completed_books_html = '';
+    $paused_books_html = '';
+    $dnf_books_html = '';
     $completed_count = 0;
+    $paused_count = 0;
+    $dnf_count = 0;
     $main_list_html = ''; // For combined list when filtering is off
 
     // 4. Generate HTML based on the sorted list and current filter settings
@@ -145,18 +169,37 @@ function hs_my_books_shortcode($atts)
 	$has_review = $data['has_review'];
 	$user_rating = $data['user_rating'];
 	$user_review_text = $data['user_review_text'];
+	$status = $data['status'];
+	$is_dnf = $data['is_dnf'];
+	$is_paused = $data['is_paused'];
+	$dnf_info = $data['dnf_info'];
 
 	error_log("Book ID {$book_entry -> book_id}: current_page={$current_page}, total_pages={$total_pages}, is_completed=" . ($is_completed ? 'YES' : 'NO'));
 
-        $li_class = $is_completed ? 'hs-my-book completed' : 'hs-my-book';
+        $li_class = 'hs-my-book';
+	if ($is_completed) {
+		$li_class .= ' completed';
+	}
+	if ($is_paused) {
+		$li_class .= ' hs-book-paused';
+	}
+	if ($is_dnf) {
+		$li_class .= ' hs-book-dnf';
+	}
         $bar_class = $is_completed ? 'hs-progress-bar golden' : 'hs-progress-bar';
 
-	// Data-reviewed attribute
-	$book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry -> book_id) . '" date-reviewed="' . ($has_review ? 'true' : 'false') . '">';
-
         // HTML for a single book item
-        $book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '">';
-        $book_html .= '<h3><a style="color: #0056b3;" href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a></h3>';
+        $book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '" data-reviewed="' . ($has_review ? 'true' : 'false') . '">';
+        $book_html .= '<h3><a style="color: #0056b3;" href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a>';
+
+	// Add status badge
+	if ($is_paused) {
+		$book_html .= '<span class="hs-book-status-badge hs-badge-paused">Paused</span>';
+	} elseif ($is_dnf) {
+		$book_html .= '<span class="hs-book-status-badge hs-badge-dnf">DNF</span>';
+	}
+
+	$book_html .= '</h3>';
         $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>'; // Display Author
         $book_html .= '<div class="hs-progress-bar-container"><div class="' . esc_attr($bar_class) . '" style="width: ' . esc_attr($progress) . '%;"></div></div>';
         $book_html .= '<span>Progress: ' . esc_html($progress) . '% (' . esc_html($current_page) . ' / ' . esc_html($total_pages) . ' pages)</span>';
@@ -169,9 +212,28 @@ function hs_my_books_shortcode($atts)
         $book_html .= '<span class="hs-feedback"></span>';
         $book_html .= '</form>';
 
+	// Show DNF reason if book is marked DNF
+	if ($is_dnf && $dnf_info) {
+		$book_html .= '<div class="hs-dnf-reason-display">DNF Reason: ' . esc_html($dnf_info->reason) . '</div>';
+	}
+
         $book_html .= '<div class="hs-button-group">';
         $book_html .= '<button class="hs-button hs-remove-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Remove</button>';
         $book_html .= '<button class="hs-button hs-notes-button" data-book-id="' . esc_attr($book_entry->book_id) . '" data-book-title="' . esc_attr($book->post_title) . '">View & Manage Notes</button>';
+
+	// Add Pause/Resume/DNF buttons (not for completed or DNF books)
+	if ($is_paused) {
+		$book_html .= '<button class="hs-button hs-resume-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Resume</button>';
+	} elseif (!$is_completed && !$is_dnf) {
+		$book_html .= '<button class="hs-button hs-pause-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Pause</button>';
+	}
+
+	// Add DNF button (not for completed or already DNF books)
+	if (!$is_completed && !$is_dnf) {
+		$book_html .= '<button class="hs-button hs-dnf-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Mark as DNF</button>';
+	}
+
+	$book_html .= '<span class="hs-book-action-feedback"></span>';
         $book_html .= '</div>';
 
 
@@ -209,19 +271,33 @@ function hs_my_books_shortcode($atts)
 
         $book_html .= '</li>';
 
-        // Append to the correct section string based on the filter setting
+        // Append to the correct section string based on the filter setting and status
         if ($include_completed) {
             $main_list_html .= $book_html;
         } else {
-            if ($is_completed) {
+            if ($is_dnf) {
+                $dnf_books_html .= $book_html;
+                $dnf_count++;
+            } elseif ($is_paused) {
+                $paused_books_html .= $book_html;
+                $paused_count++;
+            } elseif ($is_completed) {
                 $completed_books_html .= $book_html;
+                $completed_count++;
             } else {
                 $reading_books_html .= $book_html;
             }
         }
 
-        if ($is_completed) {
-            $completed_count++; // Still count for summary
+        // Count for summary even if in combined view
+        if ($is_completed && $include_completed) {
+            $completed_count++;
+        }
+        if ($is_paused && $include_completed) {
+            $paused_count++;
+        }
+        if ($is_dnf && $include_completed) {
+            $dnf_count++;
         }
     }
 
@@ -294,6 +370,22 @@ function hs_my_books_shortcode($atts)
             $output .= '<p>You are not currently reading any books.</p>';
         }
 
+        // "Paused Books" Section
+        if ($paused_count > 0) {
+            $output .= '<details class="hs-completed-section">';
+            $output .= '<summary><h3>Paused Books (' . $paused_count . ')</h3></summary>';
+            $output .= '<ul class="hs-my-book-list" id="hs-paused-books-list">' . $paused_books_html . '</ul>';
+            $output .= '</details>';
+        }
+
+        // "DNF Books" Section
+        if ($dnf_count > 0) {
+            $output .= '<details class="hs-completed-section">';
+            $output .= '<summary><h3>DNF Books (' . $dnf_count . ')</h3></summary>';
+            $output .= '<ul class="hs-my-book-list" id="hs-dnf-books-list">' . $dnf_books_html . '</ul>';
+            $output .= '</details>';
+        }
+
         // "Completed Books" Section
         if ($completed_count > 0) {
             $output .= '<details class="hs-completed-section">';
@@ -302,6 +394,22 @@ function hs_my_books_shortcode($atts)
             $output .= '</details>';
         }
     }
+
+    // Add DNF Modal HTML
+    $output .= '
+    <div id="hs-dnf-modal" style="display:none;">
+        <div class="hs-modal-content">
+            <span id="hs-close-dnf-modal">&times;</span>
+            <h3>Mark Book as DNF (Did Not Finish)</h3>
+            <p>Please tell us why you stopped reading this book. Your feedback helps us improve recommendations.</p>
+            <form id="hs-dnf-form">
+                <input type="hidden" id="hs-dnf-book-id" value="">
+                <textarea id="hs-dnf-reason-textarea" placeholder="e.g., The pacing was too slow, not what I expected, etc." required></textarea>
+                <button type="submit" class="hs-button" id="hs-submit-dnf-button">Mark as DNF</button>
+                <span id="hs-dnf-feedback"></span>
+            </form>
+        </div>
+    </div>';
 
     $output .= '</div>';
     return $output;

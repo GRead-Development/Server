@@ -379,7 +379,7 @@ jQuery(document).ready(function($) {
             reportUserModal.hide();
         });
     }
-    
+
     // Click outside to close
     $(window).on('click', function(e) {
         if ($(e.target).is(reportUserModal)) {
@@ -430,6 +430,179 @@ jQuery(document).ready(function($) {
             error: function() {
                 feedback_div.text('Oops! An error occurred!').css('color', 'red');
                 button.text('Submit Report').prop('disabled', false);
+            }
+        });
+    });
+
+    // --- DNF (Did Not Finish) Functionality ---
+    const dnfModal = $('#hs-dnf-modal');
+    const closeDnfBtn = $('#hs-close-dnf-modal');
+    let currentDnfBookId = null;
+
+    // Open DNF modal
+    $(document).on('click', '.hs-dnf-book', function(e) {
+        e.preventDefault();
+        currentDnfBookId = $(this).data('book-id');
+        $('#hs-dnf-book-id').val(currentDnfBookId);
+        $('#hs-dnf-reason-textarea').val('');
+        $('#hs-dnf-feedback').text('');
+        dnfModal.show();
+    });
+
+    // Close DNF modal
+    if (closeDnfBtn.length) {
+        closeDnfBtn.on('click', function() {
+            dnfModal.hide();
+        });
+    }
+
+    // Click outside to close
+    $(window).on('click', function(e) {
+        if ($(e.target).is(dnfModal)) {
+            dnfModal.hide();
+        }
+    });
+
+    // Submit DNF
+    $(document).on('submit', '#hs-dnf-form', function(e) {
+        e.preventDefault();
+        const button = $('#hs-submit-dnf-button');
+        const feedback_div = $('#hs-dnf-feedback');
+        const book_id = $('#hs-dnf-book-id').val();
+        const reason = $('#hs-dnf-reason-textarea').val();
+        const list_item = $('.hs-my-book[data-list-book-id="' + book_id + '"]');
+
+        if (reason.trim() === '') {
+            feedback_div.text('Please provide a reason.').css('color', 'red');
+            return;
+        }
+
+        $.ajax({
+            url: hs_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'hs_mark_book_dnf',
+                nonce: hs_ajax.nonce,
+                book_id: book_id,
+                reason: reason
+            },
+            beforeSend: function() {
+                button.text('Saving...').prop('disabled', true);
+                feedback_div.text('');
+            },
+            success: function(response) {
+                if (response.success) {
+                    feedback_div.text('Book marked as DNF!').css('color', 'green');
+
+                    setTimeout(() => {
+                        dnfModal.hide();
+                        button.text('Mark as DNF').prop('disabled', false);
+
+                        // Update the book item status
+                        list_item.addClass('hs-book-dnf');
+                        list_item.find('.hs-book-status-badge').remove();
+                        list_item.find('h3').after('<span class="hs-book-status-badge hs-badge-dnf">DNF</span>');
+                        list_item.find('.hs-dnf-book').replaceWith('<span class="hs-dnf-reason-display">DNF Reason: ' + reason + '</span>');
+
+                        // Move to a separate section or mark visually
+                        list_item.fadeOut(400, function() {
+                            // Could move to a separate DNF section if desired
+                            $(this).appendTo('#hs-dnf-books-list').fadeIn(400);
+                        });
+                    }, 2000);
+                } else {
+                    feedback_div.text(response.data.message).css('color', 'red');
+                    button.text('Mark as DNF').prop('disabled', false);
+                }
+            },
+            error: function() {
+                feedback_div.text('Request failed!').css('color', 'red');
+                button.text('Mark as DNF').prop('disabled', false);
+            }
+        });
+    });
+
+    // --- Pause Book ---
+    $(document).on('click', '.hs-pause-book', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const book_id = button.data('book-id');
+        const list_item = button.closest('.hs-my-book');
+        const feedback_span = list_item.find('.hs-book-action-feedback');
+
+        $.ajax({
+            url: hs_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'hs_pause_book',
+                nonce: hs_ajax.nonce,
+                book_id: book_id
+            },
+            beforeSend: function() {
+                button.text('Pausing...').prop('disabled', true);
+                feedback_span.text('');
+            },
+            success: function(response) {
+                if (response.success) {
+                    feedback_span.text('Book paused!').css('color', 'green');
+
+                    // Update UI
+                    list_item.addClass('hs-book-paused');
+                    list_item.find('.hs-book-status-badge').remove();
+                    list_item.find('h3').after('<span class="hs-book-status-badge hs-badge-paused">Paused</span>');
+                    button.text('Resume').removeClass('hs-pause-book').addClass('hs-resume-book').prop('disabled', false);
+
+                    setTimeout(() => feedback_span.text(''), 2000);
+                } else {
+                    feedback_span.text(response.data.message).css('color', 'red');
+                    button.text('Pause').prop('disabled', false);
+                }
+            },
+            error: function() {
+                feedback_span.text('Request failed!').css('color', 'red');
+                button.text('Pause').prop('disabled', false);
+            }
+        });
+    });
+
+    // --- Resume Book ---
+    $(document).on('click', '.hs-resume-book', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const book_id = button.data('book-id');
+        const list_item = button.closest('.hs-my-book');
+        const feedback_span = list_item.find('.hs-book-action-feedback');
+
+        $.ajax({
+            url: hs_ajax.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'hs_resume_book',
+                nonce: hs_ajax.nonce,
+                book_id: book_id
+            },
+            beforeSend: function() {
+                button.text('Resuming...').prop('disabled', true);
+                feedback_span.text('');
+            },
+            success: function(response) {
+                if (response.success) {
+                    feedback_span.text('Book resumed!').css('color', 'green');
+
+                    // Update UI
+                    list_item.removeClass('hs-book-paused');
+                    list_item.find('.hs-book-status-badge').remove();
+                    button.text('Pause').removeClass('hs-resume-book').addClass('hs-pause-book').prop('disabled', false);
+
+                    setTimeout(() => feedback_span.text(''), 2000);
+                } else {
+                    feedback_span.text(response.data.message).css('color', 'red');
+                    button.text('Resume').prop('disabled', false);
+                }
+            },
+            error: function() {
+                feedback_span.text('Request failed!').css('color', 'red');
+                button.text('Resume').prop('disabled', false);
             }
         });
     });

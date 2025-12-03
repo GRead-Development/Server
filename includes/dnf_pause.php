@@ -304,3 +304,73 @@ function hs_get_user_dnf_books($user_id) {
 
     return $dnf_books;
 }
+
+/**
+ * AJAX handler for marking book as DNF
+ */
+function hs_ajax_mark_book_dnf() {
+    check_ajax_referer('hs_ajax_nonce', 'nonce');
+
+    if (!is_user_logged_in() || !isset($_POST['book_id']) || !isset($_POST['reason'])) {
+        wp_send_json_error(array('message' => 'Invalid request.'));
+    }
+
+    $user_id = get_current_user_id();
+    $book_id = intval($_POST['book_id']);
+    $reason = sanitize_textarea_field($_POST['reason']);
+
+    $result = hs_mark_book_dnf($user_id, $book_id, $reason);
+
+    if ($result['success']) {
+        wp_send_json_success($result);
+    } else {
+        wp_send_json_error($result);
+    }
+}
+add_action('wp_ajax_hs_mark_book_dnf', 'hs_ajax_mark_book_dnf');
+
+/**
+ * AJAX handler for pausing book
+ */
+function hs_ajax_pause_book() {
+    check_ajax_referer('hs_ajax_nonce', 'nonce');
+
+    if (!is_user_logged_in() || !isset($_POST['book_id'])) {
+        wp_send_json_error(array('message' => 'Invalid request.'));
+    }
+
+    $user_id = get_current_user_id();
+    $book_id = intval($_POST['book_id']);
+
+    $result = hs_pause_book($user_id, $book_id);
+
+    if ($result['success']) {
+        wp_send_json_success($result);
+    } else {
+        wp_send_json_error($result);
+    }
+}
+add_action('wp_ajax_hs_pause_book', 'hs_ajax_pause_book');
+
+/**
+ * AJAX handler for resuming book
+ */
+function hs_ajax_resume_book() {
+    check_ajax_referer('hs_ajax_nonce', 'nonce');
+
+    if (!is_user_logged_in() || !isset($_POST['book_id'])) {
+        wp_send_json_error(array('message' => 'Invalid request.'));
+    }
+
+    $user_id = get_current_user_id();
+    $book_id = intval($_POST['book_id']);
+
+    $result = hs_resume_book($user_id, $book_id);
+
+    if ($result['success']) {
+        wp_send_json_success($result);
+    } else {
+        wp_send_json_error($result);
+    }
+}
+add_action('wp_ajax_hs_resume_book', 'hs_ajax_resume_book');

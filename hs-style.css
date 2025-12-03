@@ -502,3 +502,151 @@
     font-size: 14px;
     font-weight: 500;
 }
+
+/* DNF Modal Styles */
+#hs-dnf-modal {
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+}
+
+#hs-dnf-modal .hs-modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 30px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+#hs-close-dnf-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+#hs-close-dnf-modal:hover,
+#hs-close-dnf-modal:focus {
+    color: #000;
+}
+
+#hs-dnf-reason-textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    box-sizing: border-box;
+    min-height: 100px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+#hs-dnf-feedback {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Status Badges */
+.hs-book-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    margin-left: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 12px;
+    text-transform: uppercase;
+}
+
+.hs-badge-paused {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.hs-badge-dnf {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+/* Book Status Styles */
+.hs-book-paused {
+    background-color: #fff9e6;
+    border-left: 4px solid #ffc107;
+}
+
+.hs-book-dnf {
+    background-color: #ffe6e6;
+    border-left: 4px solid #dc3545;
+    opacity: 0.85;
+}
+
+.hs-dnf-reason-display {
+    display: block;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    font-style: italic;
+    color: #721c24;
+}
+
+/* Pause/Resume Button Styles */
+.hs-pause-book {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.hs-pause-book:hover {
+    background-color: #e0a800;
+}
+
+.hs-resume-book {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.hs-resume-book:hover {
+    background-color: #218838;
+}
+
+.hs-dnf-book {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.hs-dnf-book:hover {
+    background-color: #c82333;
+}
+
+.hs-book-action-feedback {
+    display: inline-block;
+    margin-left: 10px;
+    font-size: 13px;
+    font-style: italic;
+}
+
+/* Button group improvements */
+.hs-button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.hs-button-group .hs-button {
+    margin-top: 0;
+}
