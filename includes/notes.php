@@ -57,6 +57,11 @@ function hs_create_book_note($user_id, $book_id, $note_text, $page_number = null
 		hs_increment_notes_created($user_id);
 	}
 
+	// Award points for public notes (community contribution)
+	if ($note_id && $is_public && function_exists('award_points')) {
+		award_points($user_id, 3);
+	}
+
 	return $note_id;
 }
 
@@ -124,7 +129,11 @@ function hs_update_book_note($note_id, $note_text, $page_number = null, $is_publ
 		return false;
 	}
 
-	return $wpdb -> update(
+	// Track if visibility changed for point adjustments
+	$old_is_public = (bool)$note->is_public;
+	$new_is_public = (bool)$is_public;
+
+	$result = $wpdb -> update(
 		$wpdb -> prefix . 'hs_book_notes',
 		array(
 			'note_text' => sanitize_textarea_field($note_text),
@@ -135,6 +144,19 @@ function hs_update_book_note($note_id, $note_text, $page_number = null, $is_publ
 
 		array('id' => intval($note_id))
 	);
+
+	// Handle point adjustments when visibility changes
+	if ($result !== false) {
+		if (!$old_is_public && $new_is_public && function_exists('award_points')) {
+			// Note made public: award points
+			award_points($note->user_id, 3);
+		} elseif ($old_is_public && !$new_is_public && function_exists('hs_deduct_points')) {
+			// Note made private: deduct points
+			hs_deduct_points($note->user_id, 3);
+		}
+	}
+
+	return $result;
 }
 
 
@@ -155,11 +177,19 @@ function hs_delete_book_note($note_id)
 		return false;
 	}
 
+	// Track if note was public for point deduction
+	$was_public = (bool)$note->is_public;
+
 	$result = $wpdb -> delete($wpdb -> prefix . 'hs_book_notes', array('id' => intval($note_id)));
 
 	// Decrement user's note count
 	if ($result && function_exists('hs_decrement_notes_created')) {
 		hs_decrement_notes_created($note->user_id);
+	}
+
+	// Deduct points if the deleted note was public
+	if ($result && $was_public && function_exists('hs_deduct_points')) {
+		hs_deduct_points($note->user_id, 3);
 	}
 
 	return $result;
