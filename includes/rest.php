@@ -473,52 +473,86 @@ function gread_check_user_permission() {
 
 function gread_get_user_library($request) {
     global $wpdb;
-    
+
     $user_id = get_current_user_id();
-    
+
     if (!$user_id) {
         return new WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
     }
-    
+
     $table_name = $wpdb->prefix . 'user_books';
-    
+    $pending_table = $wpdb->prefix . 'pending_books';
+
     // Check if table exists
     if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
         return new WP_Error('table_not_found', 'User books table not found', array('status' => 500));
     }
-    
+
     $user_books = $wpdb->get_results($wpdb->prepare(
         "SELECT * FROM $table_name WHERE user_id = %d ORDER BY id DESC",
         $user_id
     ));
-    
+
     if ($wpdb->last_error) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
-    
+
     $result = array();
-    
+
     foreach ($user_books as $user_book) {
-        $book_id = $user_book->book_id;
-        $book = get_post($book_id);
-        
-        if (!$book) continue;
-        
-        $result[] = array(
-            'id' => intval($user_book->id),
-            'book' => array(
-                'id' => intval($book_id),
-                'title' => get_the_title($book_id),
-                'author' => get_post_meta($book_id, 'book_author', true),
-                'isbn' => get_post_meta($book_id, 'book_isbn', true),
-                'page_count' => intval(get_post_meta($book_id, 'nop', true)),
-                'content' => get_the_content(null, false, $book)
-            ),
-            'current_page' => intval($user_book->current_page),
-            'status' => $user_book->status
-        );
+        // Check if this is a pending book or regular book
+        if (!empty($user_book->pending_book_id)) {
+            // This is a pending book
+            $pending_book = $wpdb->get_row($wpdb->prepare(
+                "SELECT * FROM $pending_table WHERE id = %d",
+                $user_book->pending_book_id
+            ));
+
+            if (!$pending_book) continue;
+
+            $result[] = array(
+                'id' => intval($user_book->id),
+                'is_pending' => true,
+                'pending_book_id' => intval($pending_book->id),
+                'book' => array(
+                    'id' => 0,
+                    'gid' => $pending_book->gid,
+                    'title' => $pending_book->title,
+                    'author' => $pending_book->author,
+                    'page_count' => intval($pending_book->page_count),
+                    'content' => $pending_book->description ?? '',
+                    'cover_url' => $pending_book->cover_url,
+                    'status' => $pending_book->status,
+                    'external_id' => $pending_book->external_id,
+                    'external_id_type' => $pending_book->external_id_type
+                ),
+                'current_page' => intval($user_book->current_page),
+                'status' => $user_book->status
+            );
+        } else {
+            // This is a regular book
+            $book_id = $user_book->book_id;
+            $book = get_post($book_id);
+
+            if (!$book) continue;
+
+            $result[] = array(
+                'id' => intval($user_book->id),
+                'is_pending' => false,
+                'book' => array(
+                    'id' => intval($book_id),
+                    'title' => get_the_title($book_id),
+                    'author' => get_post_meta($book_id, 'book_author', true),
+                    'isbn' => get_post_meta($book_id, 'book_isbn', true),
+                    'page_count' => intval(get_post_meta($book_id, 'nop', true)),
+                    'content' => get_the_content(null, false, $book)
+                ),
+                'current_page' => intval($user_book->current_page),
+                'status' => $user_book->status
+            );
+        }
     }
-    
+
     return rest_ensure_response($result);
 }
 
@@ -574,13 +608,23 @@ function gread_add_book_to_library($request) {
 
 function gread_update_reading_progress($request) {
     global $wpdb;
-    
+
     $user_id = get_current_user_id();
     $book_id = intval($request['book_id']);
     $current_page = intval($request['current_page']);
-    
+    $pending_book_id = isset($request['pending_book_id']) ? intval($request['pending_book_id']) : 0;
+
     $table_name = $wpdb->prefix . 'user_books';
-    
+
+    // Build the WHERE clause based on whether it's a pending book or regular book
+    if ($pending_book_id > 0) {
+        $where = array('user_id' => $user_id, 'pending_book_id' => $pending_book_id);
+        $where_format = array('%d', '%d');
+    } else {
+        $where = array('user_id' => $user_id, 'book_id' => $book_id);
+        $where_format = array('%d', '%d');
+    }
+
     // Update progress
     $result = $wpdb->update(
         $table_name,
@@ -588,9 +632,9 @@ function gread_update_reading_progress($request) {
             'current_page' => $current_page,
             'date_updated' => current_time('mysql')
         ),
-        array('user_id' => $user_id, 'book_id' => $book_id),
+        $where,
         array('%d', '%s'),
-        array('%d', '%d')
+        $where_format
     );
 
     if ($result === false) {
@@ -599,7 +643,8 @@ function gread_update_reading_progress($request) {
 
     // Track the activity
     if (function_exists('hs_track_library_activity')) {
-        hs_track_library_activity($user_id, $book_id, 'progress_update', json_encode(array('page' => $current_page)));
+        $tracking_id = $pending_book_id > 0 ? $pending_book_id : $book_id;
+        hs_track_library_activity($user_id, $tracking_id, 'progress_update', json_encode(array('page' => $current_page)));
     }
 
     // Update user stats
