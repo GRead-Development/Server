@@ -31,6 +31,7 @@ function hs_achievements_create_table()
 		author_term_id bigint(20) DEFAULT NULL,
 		points_reward int(11) DEFAULT 0,
 		is_hidden tinyint(1) DEFAULT 0,
+		category varchar(50) DEFAULT NULL,
 		display_order int(11) DEFAULT 0,
 		PRIMARY KEY (id),
 		UNIQUE KEY slug (slug)
@@ -83,6 +84,31 @@ function hs_achievements_migrate_add_svg_column() {
     }
 }
 add_action('admin_init', 'hs_achievements_migrate_add_svg_column');
+
+/**
+ * Migrate achievements table to add category column if it doesn't exist
+ */
+function hs_achievements_migrate_add_category_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_achievements';
+
+    // Check if table exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        return;
+    }
+
+    // Check if column exists
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'category'
+    ));
+
+    // Add column if it doesn't exist
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN category VARCHAR(50) DEFAULT NULL AFTER is_hidden");
+    }
+}
+add_action('admin_init', 'hs_achievements_migrate_add_category_column');
 
 /**
  * Handle SVG file upload for achievement icons
@@ -206,6 +232,7 @@ function hs_achievements_admin_page_html()
 			'condition_data'  => sanitize_textarea_field($_POST['condition_data'] ?? ''),
 			'points_reward'   => intval($_POST['points_reward']),
 			'is_hidden'       => isset($_POST['is_hidden']) ? 1 : 0,
+			'category'        => !empty($_POST['category']) ? sanitize_text_field($_POST['category']) : NULL,
 			'display_order'   => intval($_POST['display_order']),
 		];
 
@@ -279,6 +306,7 @@ function hs_achievements_admin_page_html()
 			'condition_data'   => $data['condition_data'],
 			'points_reward'    => $data['points_reward'],
 			'is_hidden'        => $data['is_hidden'],
+			'category'         => $data['category'],
 			'display_order'    => $data['display_order'],
 			'author_term_id'   => $data['author_term_id'],
 		]);
@@ -290,6 +318,7 @@ function hs_achievements_admin_page_html()
 			'%s', // condition_data
 			'%d', // points_reward
 			'%d', // is_hidden
+			'%s', // category
 			'%d', // display_order
 			'%d', // author_term_id
 		]);
@@ -639,7 +668,20 @@ function hs_achievements_admin_page_html()
                                 Hidden Achievement (users can't see requirements until unlocked)
                             </label>
                         </div>
-                        
+
+                        <div class="form-field">
+                            <label for="category">Achievement Category</label>
+                            <select name="category" id="category">
+                                <option value="">No Category</option>
+                                <option value="authors" <?php echo $achievement_to_edit && $achievement_to_edit->category === 'authors' ? 'selected' : ''; ?>>Authors</option>
+                                <option value="books_and_series" <?php echo $achievement_to_edit && $achievement_to_edit->category === 'books_and_series' ? 'selected' : ''; ?>>Books and Series</option>
+                                <option value="categories" <?php echo $achievement_to_edit && $achievement_to_edit->category === 'categories' ? 'selected' : ''; ?>>Categories</option>
+                                <option value="contributions" <?php echo $achievement_to_edit && $achievement_to_edit->category === 'contributions' ? 'selected' : ''; ?>>Contributions</option>
+                                <option value="career" <?php echo $achievement_to_edit && $achievement_to_edit->category === 'career' ? 'selected' : ''; ?>>Career</option>
+                            </select>
+                            <p class="description">Organize achievements into categories for display</p>
+                        </div>
+
                         <p class="submit">
                             <input type="submit" class="button button-primary" value="<?php echo $achievement_to_edit ? 'Update Achievement' : 'Create Achievement'; ?>">
                             <?php if ($achievement_to_edit): ?>
@@ -658,6 +700,7 @@ function hs_achievements_admin_page_html()
                             <tr>
                                 <th>Order</th>
                                 <th>Name</th>
+                                <th>Category</th>
                                 <th>Icon</th>
                                 <th>Requirement</th>
                                 <th>Reward</th>
@@ -675,6 +718,7 @@ function hs_achievements_admin_page_html()
                                                 <span class="dashicons dashicons-hidden" title="Hidden Achievement"></span>
                                             <?php endif; ?>
                                         </td>
+                                        <td><?php echo $achievement->category ? esc_html(ucwords(str_replace('_', ' ', $achievement->category))) : '—'; ?></td>
                                         <td>
                                             <div class="hs-achievement-icon-preview" style="background-color: <?php echo esc_attr($achievement->icon_color); ?>">
                                                 <?php
@@ -705,7 +749,7 @@ function hs_achievements_admin_page_html()
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="6">No achievements found.</td>
+                                    <td colspan="7">No achievements found.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -1147,9 +1191,9 @@ function hs_render_achievements_display()
 				}
 				?>
 
-                <div class="hs-achievement-item <?php echo $is_unlocked ? 'unlocked' : 'locked'; ?> <?php echo $is_hidden ? 'hidden-achievement' : ''; ?>">
+                <div class="hs-achievement-item <?php echo $is_unlocked ? 'unlocked' : 'locked'; ?> <?php echo ($achievement->is_hidden && !$is_unlocked) ? 'hidden-achievement' : ''; ?>">
                     <div class="hs-achievement-icon" style="background-color: <?php echo $is_unlocked ? esc_attr($achievement->icon_color) : '#ccc'; ?>">
-                        <?php if ($is_hidden): ?>
+                        <?php if ($achievement->is_hidden && !$is_unlocked): ?>
                             <span class="hidden-icon">?</span>
                         <?php else: ?>
                             <?php
@@ -1170,13 +1214,13 @@ function hs_render_achievements_display()
 
                     <div class="hs-achievement-info">
                         <h4 class="hs-achievement-name">
-                            <?php echo $is_hidden ? '???' : esc_html($achievement->name); ?>
+                            <?php echo ($achievement->is_hidden && !$is_unlocked) ? '???' : esc_html($achievement->name); ?>
                         </h4>
                         <p class="hs-achievement-description">
-                            <?php echo $is_hidden ? 'Hidden achievement - unlock to reveal!' : esc_html($achievement->description); ?>
+                            <?php echo ($achievement->is_hidden && !$is_unlocked) ? '???' : esc_html($achievement->description); ?>
                         </p>
 
-                        <?php if (!$is_hidden): ?>
+                        <?php if (!($achievement->is_hidden && !$is_unlocked)): ?>
                             <div class="hs-achievement-progress-bar">
                                 <div class="hs-progress-fill" style="width: <?php echo esc_attr($progress_percentage); ?>%;"></div>
                             </div>
@@ -1184,7 +1228,7 @@ function hs_render_achievements_display()
                                 <?php if ($is_unlocked): ?>
                                     <span class="unlocked-text">✓ Unlocked <?php echo human_time_diff(strtotime($achievement->date_unlocked), current_time('timestamp')); ?> ago</span>
                                 <?php else: ?>
-                                    <?php echo number_format($current_value); ?> / <?php echo number_format($achievement->unlock_value); ?> 
+                                    <?php echo number_format($current_value); ?> / <?php echo number_format($achievement->unlock_value); ?>
                                     <?php echo esc_html($unlock_label); ?>
                                 <?php endif; ?>
                             </p>

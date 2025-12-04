@@ -23,6 +23,10 @@ function gread_register_achievements_routes() {
             'show_hidden' => array(
                 'default' => false,
                 'type' => 'boolean'
+            ),
+            'category' => array(
+                'default' => '',
+                'type' => 'string'
             )
         )
     ));
@@ -64,6 +68,10 @@ function gread_register_achievements_routes() {
             'filter' => array(
                 'default' => 'all',
                 'enum' => array('all', 'unlocked', 'locked')
+            ),
+            'category' => array(
+                'default' => '',
+                'type' => 'string'
             )
         )
     ));
@@ -78,6 +86,10 @@ function gread_register_achievements_routes() {
             'filter' => array(
                 'default' => 'all',
                 'enum' => array('all', 'unlocked', 'locked')
+            ),
+            'category' => array(
+                'default' => '',
+                'type' => 'string'
             )
         )
     ));
@@ -134,12 +146,22 @@ function gread_get_all_achievements($request) {
     }
 
     $show_hidden = $request->get_param('show_hidden');
+    $category = $request->get_param('category');
+
+    // Build WHERE clause
+    $where_clauses = array();
 
     // Don't show hidden achievements to non-authenticated users
-    $where = '';
     if (!is_user_logged_in() && !$show_hidden) {
-        $where = "WHERE is_hidden = 0";
+        $where_clauses[] = "is_hidden = 0";
     }
+
+    // Filter by category if specified
+    if (!empty($category)) {
+        $where_clauses[] = $wpdb->prepare("category = %s", sanitize_text_field($category));
+    }
+
+    $where = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
 
     $achievements = $wpdb->get_results("SELECT * FROM $table_name $where ORDER BY display_order ASC, name ASC");
 
@@ -218,6 +240,7 @@ function gread_get_user_achievements_with_progress($request) {
 
     $user_id = intval($request['id']);
     $filter = $request->get_param('filter') ?: 'all';
+    $category = $request->get_param('category') ?: '';
 
     // Verify user exists
     $user = get_userdata($user_id);
@@ -228,11 +251,20 @@ function gread_get_user_achievements_with_progress($request) {
     $achievements_table = $wpdb->prefix . 'hs_achievements';
     $user_achievements_table = $wpdb->prefix . 'hs_user_achievements';
 
+    // Build WHERE clause
+    $where_clauses = array('a.is_hidden = 0');
+
+    if (!empty($category)) {
+        $where_clauses[] = $wpdb->prepare("a.category = %s", sanitize_text_field($category));
+    }
+
+    $where = implode(' AND ', $where_clauses);
+
     // Build the query
     $query = "SELECT a.*, ua.date_unlocked, ua.id IS NOT NULL as is_unlocked
               FROM {$achievements_table} a
               LEFT JOIN {$user_achievements_table} ua ON a.id = ua.achievement_id AND ua.user_id = %d
-              WHERE a.is_hidden = 0
+              WHERE {$where}
               ORDER BY a.display_order ASC, a.name ASC";
 
     $achievements = $wpdb->get_results($wpdb->prepare($query, $user_id));
@@ -254,7 +286,7 @@ function gread_get_user_achievements_with_progress($request) {
             continue;
         }
 
-        $result[] = gread_format_achievement_with_progress($achievement, $user_stats);
+        $result[] = gread_format_achievement_with_progress($achievement, $user_stats, $user_id);
     }
 
     // Count unlocked achievements
@@ -288,6 +320,7 @@ function gread_get_current_user_achievements($request) {
     // Use the same endpoint but for current user
     $new_request = new WP_REST_Request('GET', "/gread/v1/user/$user_id/achievements");
     $new_request->set_param('filter', $request->get_param('filter') ?: 'all');
+    $new_request->set_param('category', $request->get_param('category') ?: '');
 
     return gread_get_user_achievements_with_progress($new_request);
 }
@@ -521,6 +554,7 @@ function gread_format_achievement($achievement) {
         'is_multistep' => !empty($steps),
         'reward' => intval($achievement->points_reward),
         'is_hidden' => boolval($achievement->is_hidden),
+        'category' => $achievement->category ?: null,
         'display_order' => intval($achievement->display_order)
     );
 }
@@ -529,15 +563,22 @@ function gread_format_achievement($achievement) {
 /**
  * Format achievement with user progress
  */
-function gread_format_achievement_with_progress($achievement, $user_stats) {
+function gread_format_achievement_with_progress($achievement, $user_stats, $user_id = null) {
     global $wpdb;
 
     $current_value = isset($user_stats[$achievement->unlock_metric]) ? $user_stats[$achievement->unlock_metric] : 0;
     $progress_percentage = $achievement->unlock_value > 0 ? min(100, ($current_value / $achievement->unlock_value) * 100) : 0;
 
+    // Check if achievement is unlocked
+    $is_unlocked = boolval($achievement->is_unlocked);
+    $is_hidden = boolval($achievement->is_hidden);
+
+    // Determine if we should mask the achievement (hidden and not unlocked)
+    $should_mask = $is_hidden && !$is_unlocked;
+
     // Get SVG URL if available
     $svg_url = null;
-    if (!empty($achievement->icon_svg_path)) {
+    if (!empty($achievement->icon_svg_path) && !$should_mask) {
         $upload_dir = wp_upload_dir();
         $svg_url = $upload_dir['baseurl'] . $achievement->icon_svg_path;
     }
@@ -592,30 +633,31 @@ function gread_format_achievement_with_progress($achievement, $user_stats) {
     return array(
         'id' => intval($achievement->id),
         'slug' => $achievement->slug,
-        'name' => $achievement->name,
-        'description' => $achievement->description,
+        'name' => $should_mask ? '???' : $achievement->name,
+        'description' => $should_mask ? '???' : $achievement->description,
         'icon' => array(
-            'type' => $achievement->icon_type,
-            'color' => $achievement->icon_color,
-            'symbol' => function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐',
+            'type' => $should_mask ? 'question' : $achievement->icon_type,
+            'color' => $should_mask ? '#999999' : $achievement->icon_color,
+            'symbol' => $should_mask ? '?' : (function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐'),
             'svg_url' => $svg_url
         ),
-        'unlock_requirements' => array(
+        'unlock_requirements' => $should_mask ? null : array(
             'metric' => $achievement->unlock_metric,
             'value' => intval($achievement->unlock_value),
             'condition' => $achievement->unlock_condition
         ),
-        'progress' => array(
+        'progress' => $should_mask ? null : array(
             'current' => intval($current_value),
             'required' => intval($achievement->unlock_value),
             'percentage' => round($progress_percentage, 2)
         ),
-        'steps' => $steps,
+        'steps' => $should_mask ? [] : $steps,
         'is_multistep' => !empty($steps),
-        'is_unlocked' => boolval($achievement->is_unlocked),
-        'date_unlocked' => $achievement->is_unlocked ? $achievement->date_unlocked : null,
-        'reward' => intval($achievement->points_reward),
-        'is_hidden' => boolval($achievement->is_hidden),
+        'is_unlocked' => $is_unlocked,
+        'date_unlocked' => $is_unlocked ? $achievement->date_unlocked : null,
+        'reward' => $should_mask ? null : intval($achievement->points_reward),
+        'is_hidden' => $is_hidden,
+        'category' => $achievement->category ?: null,
         'display_order' => intval($achievement->display_order)
     );
 }
