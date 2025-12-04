@@ -11,8 +11,15 @@ if (!defined('ABSPATH')) {
 
 /**
  * Register achievement REST API routes
+ *
+ * LEGACY ENDPOINTS (v1) - REMOVE AFTER iOS APP MIGRATION TO V2
+ * These endpoints maintain backward compatibility with the current iOS app
  */
 function gread_register_achievements_routes() {
+
+    // ============================================================================
+    // LEGACY V1 ENDPOINTS - REMOVE AFTER iOS APP UPDATES TO V2
+    // ============================================================================
 
     // Get all achievements
     register_rest_route('gread/v1', '/achievements', array(
@@ -128,12 +135,140 @@ function gread_register_achievements_routes() {
         )
     ));
 
+    // ============================================================================
+    // V2 ENDPOINTS - NEW ACHIEVEMENT SYSTEM WITH CATEGORIES & HIDDEN ACHIEVEMENTS
+    // ============================================================================
+    // These endpoints support:
+    // - Category filtering and organization
+    // - Hidden achievements (shows ? icon and ??? text until unlocked)
+    // - Proper masking of locked hidden achievement details
+    // - All achievements visible in user lists (with masking for hidden ones)
+
+    // Get all achievements (v2)
+    // Supports category filtering, shows all achievements including hidden ones
+    register_rest_route('gread/v2', '/achievements', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_all_achievements',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'category' => array(
+                'default' => '',
+                'type' => 'string',
+                'description' => 'Filter by category: authors, books_and_series, categories, contributions, career'
+            )
+        )
+    ));
+
+    // Get specific achievement details (v2)
+    register_rest_route('gread/v2', '/achievements/(?P<id>\d+)', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_achievement_by_id',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            )
+        )
+    ));
+
+    // Get achievement by slug (v2)
+    register_rest_route('gread/v2', '/achievements/slug/(?P<slug>[a-z0-9\-]+)', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_achievement_by_slug',
+        'permission_callback' => '__return_true'
+    ));
+
+    // Get all achievements for a specific user with progress (v2)
+    // Shows ALL achievements including hidden ones (masked if locked)
+    register_rest_route('gread/v2', '/user/(?P<id>\d+)/achievements', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_user_achievements_with_progress',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            ),
+            'filter' => array(
+                'default' => 'all',
+                'enum' => array('all', 'unlocked', 'locked'),
+                'description' => 'Filter achievements by unlock status'
+            ),
+            'category' => array(
+                'default' => '',
+                'type' => 'string',
+                'description' => 'Filter by category'
+            )
+        )
+    ));
+
+    // Get current user's achievements (v2)
+    register_rest_route('gread/v2', '/me/achievements', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_current_user_achievements',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'filter' => array(
+                'default' => 'all',
+                'enum' => array('all', 'unlocked', 'locked')
+            ),
+            'category' => array(
+                'default' => '',
+                'type' => 'string'
+            )
+        )
+    ));
+
+    // Check and unlock achievements for current user (v2)
+    register_rest_route('gread/v2', '/me/achievements/check', array(
+        'methods' => 'POST',
+        'callback' => 'gread_v2_check_current_user_achievements',
+        'permission_callback' => 'gread_check_user_permission'
+    ));
+
+    // Get achievement statistics (v2)
+    register_rest_route('gread/v2', '/achievements/stats', array(
+        'methods' => 'GET',
+        'callback' => 'gread_get_achievements_statistics', // Reuse v1 function (no changes needed)
+        'permission_callback' => '__return_true'
+    ));
+
+    // Get achievement leaderboard (v2)
+    register_rest_route('gread/v2', '/achievements/leaderboard', array(
+        'methods' => 'GET',
+        'callback' => 'gread_get_achievements_leaderboard', // Reuse v1 function (no changes needed)
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'limit' => array(
+                'default' => 10,
+                'type' => 'integer',
+                'validate_callback' => function($param) {
+                    return intval($param) > 0 && intval($param) <= 100;
+                }
+            ),
+            'offset' => array(
+                'default' => 0,
+                'type' => 'integer'
+            )
+        )
+    ));
+
 }
 add_action('rest_api_init', 'gread_register_achievements_routes');
 
 
+// ============================================================================
+// LEGACY V1 FUNCTIONS - REMOVE AFTER iOS APP UPDATES TO V2
+// ============================================================================
+
 /**
- * Get all achievements
+ * LEGACY V1: Get all achievements
+ * REMOVE AFTER iOS APP MIGRATION
  */
 function gread_get_all_achievements($request) {
     global $wpdb;
@@ -179,7 +314,8 @@ function gread_get_all_achievements($request) {
 
 
 /**
- * Get specific achievement by ID
+ * LEGACY V1: Get specific achievement by ID
+ * REMOVE AFTER iOS APP MIGRATION
  */
 function gread_get_achievement_by_id($request) {
     global $wpdb;
@@ -206,7 +342,8 @@ function gread_get_achievement_by_id($request) {
 
 
 /**
- * Get achievement by slug
+ * LEGACY V1: Get achievement by slug
+ * REMOVE AFTER iOS APP MIGRATION
  */
 function gread_get_achievement_by_slug($request) {
     global $wpdb;
@@ -233,7 +370,9 @@ function gread_get_achievement_by_slug($request) {
 
 
 /**
- * Get all achievements for a user with progress info
+ * LEGACY V1: Get all achievements for a user with progress info
+ * REMOVE AFTER iOS APP MIGRATION
+ * NOTE: This filters OUT hidden achievements completely
  */
 function gread_get_user_achievements_with_progress($request) {
     global $wpdb;
@@ -308,7 +447,8 @@ function gread_get_user_achievements_with_progress($request) {
 
 
 /**
- * Get current user's achievements
+ * LEGACY V1: Get current user's achievements
+ * REMOVE AFTER iOS APP MIGRATION
  */
 function gread_get_current_user_achievements($request) {
     $user_id = get_current_user_id();
@@ -327,7 +467,8 @@ function gread_get_current_user_achievements($request) {
 
 
 /**
- * Check and unlock achievements for current user
+ * LEGACY V1: Check and unlock achievements for current user
+ * REMOVE AFTER iOS APP MIGRATION
  */
 function gread_check_current_user_achievements($request) {
     $user_id = get_current_user_id();
@@ -660,4 +801,212 @@ function gread_format_achievement_with_progress($achievement, $user_stats, $user
         'category' => $achievement->category ?: null,
         'display_order' => intval($achievement->display_order)
     );
+}
+
+
+// ============================================================================
+// V2 API ENDPOINT FUNCTIONS - NEW ACHIEVEMENT SYSTEM
+// ============================================================================
+
+/**
+ * V2: Get all achievements
+ * Shows all achievements including hidden ones (no filtering)
+ * Supports category filtering
+ */
+function gread_v2_get_all_achievements($request) {
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . 'hs_achievements';
+
+    // Check if table exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        return new WP_Error('table_not_found', 'Achievements table not found', array('status' => 500));
+    }
+
+    $category = $request->get_param('category');
+
+    // Build WHERE clause (no hidden filtering - show all achievements)
+    $where_clauses = array();
+
+    // Filter by category if specified
+    if (!empty($category)) {
+        $where_clauses[] = $wpdb->prepare("category = %s", sanitize_text_field($category));
+    }
+
+    $where = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+    $achievements = $wpdb->get_results("SELECT * FROM $table_name $where ORDER BY display_order ASC, name ASC");
+
+    if ($wpdb->last_error) {
+        return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
+    }
+
+    $result = array();
+    foreach ($achievements as $achievement) {
+        $result[] = gread_format_achievement($achievement);
+    }
+
+    return rest_ensure_response($result);
+}
+
+
+/**
+ * V2: Get specific achievement by ID
+ */
+function gread_v2_get_achievement_by_id($request) {
+    global $wpdb;
+
+    $achievement_id = intval($request['id']);
+    $table_name = $wpdb->prefix . 'hs_achievements';
+
+    $achievement = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE id = %d",
+        $achievement_id
+    ));
+
+    if (!$achievement) {
+        return new WP_Error('not_found', 'Achievement not found', array('status' => 404));
+    }
+
+    return rest_ensure_response(gread_format_achievement($achievement));
+}
+
+
+/**
+ * V2: Get achievement by slug
+ */
+function gread_v2_get_achievement_by_slug($request) {
+    global $wpdb;
+
+    $slug = sanitize_key($request['slug']);
+    $table_name = $wpdb->prefix . 'hs_achievements';
+
+    $achievement = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE slug = %s",
+        $slug
+    ));
+
+    if (!$achievement) {
+        return new WP_Error('not_found', 'Achievement not found', array('status' => 404));
+    }
+
+    return rest_ensure_response(gread_format_achievement($achievement));
+}
+
+
+/**
+ * V2: Get all achievements for a user with progress info
+ * SHOWS ALL ACHIEVEMENTS INCLUDING HIDDEN ONES (masked if locked)
+ */
+function gread_v2_get_user_achievements_with_progress($request) {
+    global $wpdb;
+
+    $user_id = intval($request['id']);
+    $filter = $request->get_param('filter') ?: 'all';
+    $category = $request->get_param('category') ?: '';
+
+    // Verify user exists
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return new WP_Error('user_not_found', 'User not found', array('status' => 404));
+    }
+
+    $achievements_table = $wpdb->prefix . 'hs_achievements';
+    $user_achievements_table = $wpdb->prefix . 'hs_user_achievements';
+
+    // Build WHERE clause - DO NOT filter out hidden achievements
+    $where_clauses = array();
+
+    if (!empty($category)) {
+        $where_clauses[] = $wpdb->prepare("a.category = %s", sanitize_text_field($category));
+    }
+
+    $where = !empty($where_clauses) ? 'WHERE ' . implode(' AND ', $where_clauses) : '';
+
+    // Build the query - includes ALL achievements (hidden ones will be masked in formatting)
+    $query = "SELECT a.*, ua.date_unlocked, ua.id IS NOT NULL as is_unlocked
+              FROM {$achievements_table} a
+              LEFT JOIN {$user_achievements_table} ua ON a.id = ua.achievement_id AND ua.user_id = %d
+              " . ($where ? $where : '') . "
+              ORDER BY a.display_order ASC, a.name ASC";
+
+    $achievements = $wpdb->get_results($wpdb->prepare($query, $user_id));
+
+    if ($wpdb->last_error) {
+        return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
+    }
+
+    // Get user stats
+    $user_stats = gread_get_user_stats_for_achievements($user_id);
+
+    $result = array();
+    foreach ($achievements as $achievement) {
+        // Filter by unlock status
+        if ($filter === 'unlocked' && !$achievement->is_unlocked) {
+            continue;
+        }
+        if ($filter === 'locked' && $achievement->is_unlocked) {
+            continue;
+        }
+
+        // Format achievement with masking for hidden ones
+        $result[] = gread_format_achievement_with_progress($achievement, $user_stats, $user_id);
+    }
+
+    // Count unlocked achievements
+    $unlocked = 0;
+    foreach ($result as $achievement) {
+        if ($achievement['is_unlocked']) {
+            $unlocked++;
+        }
+    }
+
+    return rest_ensure_response(array(
+        'user_id' => $user_id,
+        'total' => count($result),
+        'unlocked_count' => $unlocked,
+        'achievements' => $result
+    ));
+}
+
+
+/**
+ * V2: Get current user's achievements
+ */
+function gread_v2_get_current_user_achievements($request) {
+    $user_id = get_current_user_id();
+
+    if (!$user_id) {
+        return new WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+    }
+
+    // Use the v2 endpoint for current user
+    $new_request = new WP_REST_Request('GET', "/gread/v2/user/$user_id/achievements");
+    $new_request->set_param('filter', $request->get_param('filter') ?: 'all');
+    $new_request->set_param('category', $request->get_param('category') ?: '');
+
+    return gread_v2_get_user_achievements_with_progress($new_request);
+}
+
+
+/**
+ * V2: Check and unlock achievements for current user
+ */
+function gread_v2_check_current_user_achievements($request) {
+    $user_id = get_current_user_id();
+
+    if (!$user_id) {
+        return new WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+    }
+
+    // Call the existing function from achievements_manager.php
+    if (function_exists('hs_check_user_achievements')) {
+        hs_check_user_achievements($user_id);
+    }
+
+    // Return updated achievements using v2 endpoint
+    $new_request = new WP_REST_Request('GET', "/gread/v2/user/$user_id/achievements");
+    $new_request->set_param('filter', 'unlocked');
+
+    return gread_v2_get_user_achievements_with_progress($new_request);
 }
