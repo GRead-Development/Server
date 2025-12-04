@@ -622,6 +622,7 @@ function gread_get_user_stats_for_achievements($user_id) {
         'books_added' => 'hs_books_added_count',
         'approved_reports' => 'hs_approved_reports_count',
         'notes_created' => 'hs_notes_created_count',
+        'citations_created' => 'hs_citations_created_count',
     );
 
     $user_stats = array();

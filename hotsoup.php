@@ -28,6 +28,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/api/authors.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/mentions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/achievements.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/citations.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/inaccuracy_reports.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/notes.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/social_login.php';
