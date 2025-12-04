@@ -89,17 +89,47 @@ add_action('admin_init', 'hs_achievements_migrate_add_svg_column');
  */
 function hs_handle_achievement_svg_upload($file) {
     if (empty($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        if (!empty($file) && $file['error'] !== UPLOAD_ERR_OK) {
+            $error_messages = array(
+                UPLOAD_ERR_INI_SIZE => 'File exceeds upload_max_filesize',
+                UPLOAD_ERR_FORM_SIZE => 'File exceeds MAX_FILE_SIZE',
+                UPLOAD_ERR_PARTIAL => 'File was only partially uploaded',
+                UPLOAD_ERR_NO_FILE => 'No file was uploaded',
+                UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder',
+                UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk',
+                UPLOAD_ERR_EXTENSION => 'File upload stopped by extension',
+            );
+            $error_msg = isset($error_messages[$file['error']]) ? $error_messages[$file['error']] : 'Unknown upload error';
+            return new WP_Error('upload_error', $error_msg);
+        }
         return null;
     }
 
-    // Validate file type
-    $file_type = wp_check_filetype($file['name']);
-    if ($file_type['ext'] !== 'svg') {
-        return new WP_Error('invalid_file', 'Only SVG files are allowed.');
+    // Check file extension (case-insensitive)
+    $filename = $file['name'];
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+    if ($ext !== 'svg') {
+        return new WP_Error('invalid_file', 'Only SVG files are allowed. You uploaded: .' . $ext);
+    }
+
+    // Check MIME type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    // SVG files can have different MIME types
+    $allowed_mimes = array('image/svg+xml', 'image/svg', 'text/xml', 'application/xml');
+    if (!in_array($mime, $allowed_mimes)) {
+        // Also check file contents for SVG signature
+        $file_content = file_get_contents($file['tmp_name'], false, null, 0, 100);
+        if (strpos($file_content, '<svg') === false && strpos($file_content, '<?xml') === false) {
+            return new WP_Error('invalid_mime', 'File does not appear to be a valid SVG. MIME type: ' . $mime);
+        }
     }
 
     // Sanitize filename
-    $filename = sanitize_file_name($file['name']);
+    $clean_filename = sanitize_file_name($filename);
 
     // Create uploads directory if it doesn't exist
     $upload_dir = wp_upload_dir();
@@ -110,7 +140,7 @@ function hs_handle_achievement_svg_upload($file) {
     }
 
     // Generate unique filename
-    $target_file = $achievement_icons_dir . '/' . time() . '_' . $filename;
+    $target_file = $achievement_icons_dir . '/' . time() . '_' . $clean_filename;
 
     // Move uploaded file
     if (move_uploaded_file($file['tmp_name'], $target_file)) {
@@ -118,7 +148,7 @@ function hs_handle_achievement_svg_upload($file) {
         return str_replace($upload_dir['basedir'], '', $target_file);
     }
 
-    return new WP_Error('upload_failed', 'Failed to upload file.');
+    return new WP_Error('upload_failed', 'Failed to move uploaded file to destination.');
 }
 
 /**
@@ -303,12 +333,12 @@ function hs_achievements_admin_page_html()
 							'step_description' => sanitize_textarea_field($step['description']),
 							'metric' => sanitize_key($step['metric']),
 							'target_value' => intval($step['target_value']),
-							'target_gid' => !empty($step['target_gid']) ? intval($step['target_gid']) : null,
+							'target_gid' => !empty($step['target_gid']) ? sanitize_text_field($step['target_gid']) : null,
 							'requires_previous_step' => isset($step['requires_previous']) ? 1 : 0
 						];
 
 						$wpdb->insert($steps_table, $step_data, [
-							'%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d'
+							'%d', '%d', '%s', '%s', '%s', '%d', '%s', '%d'
 						]);
 					}
 				}

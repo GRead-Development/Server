@@ -482,6 +482,12 @@ function gread_format_achievement($achievement) {
 
     if (!empty($achievement_steps)) {
         foreach ($achievement_steps as $step) {
+            // Handle target_gid as either numeric (GID) or string (tag slug)
+            $target_gid_value = null;
+            if ($step->target_gid !== null) {
+                $target_gid_value = is_numeric($step->target_gid) ? intval($step->target_gid) : $step->target_gid;
+            }
+
             $steps[] = array(
                 'id' => intval($step->id),
                 'order' => intval($step->step_order),
@@ -489,7 +495,7 @@ function gread_format_achievement($achievement) {
                 'description' => $step->step_description,
                 'metric' => $step->metric,
                 'target_value' => intval($step->target_value),
-                'target_gid' => $step->target_gid ? intval($step->target_gid) : null,
+                'target_gid' => $target_gid_value,
                 'requires_previous_step' => boolval($step->requires_previous_step)
             );
         }
@@ -557,6 +563,12 @@ function gread_format_achievement_with_progress($achievement, $user_stats) {
             $step_target = intval($step->target_value);
             $step_progress = $step_target > 0 ? min(100, ($step_current / $step_target) * 100) : 0;
 
+            // Handle target_gid as either numeric (GID) or string (tag slug)
+            $target_gid_value = null;
+            if ($step->target_gid !== null) {
+                $target_gid_value = is_numeric($step->target_gid) ? intval($step->target_gid) : $step->target_gid;
+            }
+
             $steps[] = array(
                 'id' => intval($step->id),
                 'order' => intval($step->step_order),
@@ -564,7 +576,7 @@ function gread_format_achievement_with_progress($achievement, $user_stats) {
                 'description' => $step->step_description,
                 'metric' => $step->metric,
                 'target_value' => $step_target,
-                'target_gid' => $step->target_gid ? intval($step->target_gid) : null,
+                'target_gid' => $target_gid_value,
                 'requires_previous_step' => boolval($step->requires_previous_step),
                 'progress' => array(
                     'current' => $step_current,
