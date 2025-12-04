@@ -86,7 +86,7 @@ function hs_admin_dashboard() {
                 <li><a href="<?php echo admin_url('admin.php?page=hotsoup-achievements'); ?>">Manage Achievements</a></li>
                 <li><a href="<?php echo admin_url('admin.php?page=hotsoup-themes'); ?>">Manage Themes</a></li>
                 <li><a href="<?php echo admin_url('admin.php?page=hotsoup-book-merger'); ?>">Book Merger</a></li>
-                <li><a href="<?php echo admin_url('admin.php?page=hotsoup-authors-series'); ?>">Authors & Series</a></li>
+                <li><a href="<?php echo admin_url('admin.php?page=hs-authors-series'); ?>">Authors & Series</a></li>
                 <li><a href="<?php echo admin_url('admin.php?page=hotsoup-tags'); ?>">Manage Tags</a></li>
             </ul>
         </div>

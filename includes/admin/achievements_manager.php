@@ -26,9 +26,9 @@ function hs_achievements_create_table()
 		icon_svg_path varchar(255) DEFAULT NULL,
 		unlock_metric varchar(50) NOT NULL,
 		unlock_value int(11) NOT NULL,
+		unlock_condition varchar(20) DEFAULT 'simple',
+		condition_data text,
 		author_term_id bigint(20) DEFAULT NULL,
-		unlock_condition varchar(20) DEFAULT 'simple' AFTER unlock_value,
-		condition_data text AFTER unlock_condition,
 		points_reward int(11) DEFAULT 0,
 		is_hidden tinyint(1) DEFAULT 0,
 		display_order int(11) DEFAULT 0,
@@ -206,12 +206,17 @@ function hs_achievements_admin_page_html()
 			$data['icon_svg_path'] = null;
 		}
 
-		// 3. Handle the specific 'author_term_id' field
+		// 3. Handle the specific 'author_term_id' and tag_slug fields
 		if ($data['unlock_metric'] === 'author_read_count') {
 			$author_id = isset($_POST['author_term_id']) ? intval($_POST['author_term_id']) : 0;
 			$data['author_term_id'] = $author_id > 0 ? (string)$author_id : NULL;
 		} else {
 			$data['author_term_id'] = NULL;
+		}
+
+		// Store tag slug in condition_data for tag-based achievements
+		if ($data['unlock_metric'] === 'tag_read_count' && !empty($_POST['tag_slug'])) {
+			$data['condition_data'] = sanitize_text_field($_POST['tag_slug']);
 		}
 
 		// 4. Define the final data array and format array
@@ -448,38 +453,53 @@ function hs_achievements_admin_page_html()
 								<option value="approved_reports" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'approved_reports' ? 'selected' : ''; ?>>Approved Reports</option>
 								<option value="notes_created" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'notes_created' ? 'selected' : ''; ?>>Notes Created</option>
 								<option value="author_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'author_read_count' ? 'selected' : ''; ?>>Books by Specific Author</option>
+								<option value="tag_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'tag_read_count' ? 'selected' : ''; ?>>Books with Specific Tag</option>
 							</select>
 						</div>
 
 						<div class="form-field" id="author_id_container" style="display: none;">
 							<label for="author_term_id">Required Author ID *</label>
-							<input type="number" 
-								   name="author_term_id" 
-								   id="author_term_id" 
+							<input type="number"
+								   name="author_term_id"
+								   id="author_term_id"
 								   placeholder="Enter the Author Term ID (e.g., 52)"
 								   value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->author_term_id ?? '') : ''; ?>"
 								   min="1">
 							<p class="description">This is the unique ID of the author's taxonomy term.</p>
 						</div>
 
+						<div class="form-field" id="tag_slug_container" style="display: none;">
+							<label for="tag_slug">Required Tag Slug *</label>
+							<input type="text"
+								   name="tag_slug"
+								   id="tag_slug"
+								   placeholder="Enter the tag slug (e.g., fantasy, sci-fi)"
+								   value="<?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'tag_read_count' ? esc_attr($achievement_to_edit->condition_data ?? '') : ''; ?>">
+							<p class="description">The slug of the tag (use lowercase, hyphens for spaces).</p>
+						</div>
+
 						<script>
 						// The function is now named `toggleMetricFields` and is attached to the select element via onchange.
 						function toggleMetricFields() {
 							const metricSelect = document.getElementById('unlock_metric');
-							// TARGET the correct container ID: author_id_container
-							const authorContainer = document.getElementById('author_id_container'); 
-							// TARGET the correct input ID: author_term_id
-							const authorInput = document.getElementById('author_term_id'); 
+							const authorContainer = document.getElementById('author_id_container');
+							const authorInput = document.getElementById('author_term_id');
+							const tagContainer = document.getElementById('tag_slug_container');
+							const tagInput = document.getElementById('tag_slug');
 
+							// Reset all
+							authorContainer.style.display = 'none';
+							authorInput.removeAttribute('required');
+							tagContainer.style.display = 'none';
+							tagInput.removeAttribute('required');
+
+							// Show relevant field
 							if (metricSelect.value === 'author_read_count') {
-								// Show the input
 								authorContainer.style.display = 'block';
 								authorInput.setAttribute('required', 'required');
-							} else {
-								// Hide the input
-								authorContainer.style.display = 'none';
-								authorInput.removeAttribute('required');
-								authorInput.value = ''; // Clear value
+							} else if (metricSelect.value === 'tag_read_count') {
+								tagContainer.style.display = 'block';
+								tagInput.setAttribute('required', 'required');
 							}
 						}
 
@@ -535,6 +555,7 @@ function hs_achievements_admin_page_html()
                                                     <option value="read_book_gid" <?php selected($step->metric, 'read_book_gid'); ?>>Read Specific Book (GID)</option>
                                                     <option value="review_book_gid" <?php selected($step->metric, 'review_book_gid'); ?>>Review Specific Book (GID)</option>
                                                     <option value="add_book_gid" <?php selected($step->metric, 'add_book_gid'); ?>>Add Specific Book to Library (GID)</option>
+                                                    <option value="read_books_with_tag" <?php selected($step->metric, 'read_books_with_tag'); ?>>Read Books with Specific Tag</option>
                                                     <option value="approved_reports" <?php selected($step->metric, 'approved_reports'); ?>>Approved Reports</option>
                                                     <option value="notes_created" <?php selected($step->metric, 'notes_created'); ?>>Notes Created</option>
                                                 </select>
@@ -546,9 +567,9 @@ function hs_achievements_admin_page_html()
                                             </div>
 
                                             <div class="step-field">
-                                                <label>Target GID (for GID-based metrics)</label>
-                                                <input type="number" name="steps[<?php echo $index; ?>][target_gid]" value="<?php echo esc_attr($step->target_gid); ?>" placeholder="Optional">
-                                                <p class="description">Global ID of the specific book (required for GID metrics).</p>
+                                                <label>Target GID or Tag Slug</label>
+                                                <input type="text" name="steps[<?php echo $index; ?>][target_gid]" value="<?php echo esc_attr($step->target_gid); ?>" placeholder="Optional">
+                                                <p class="description">For GID metrics: Enter the book's Global ID (number). For tag metrics: Enter the tag slug (text like "fantasy" or "sci-fi").</p>
                                             </div>
 
                                             <div class="step-field">
@@ -757,6 +778,7 @@ function hs_achievements_admin_page_html()
                             <option value="read_book_gid">Read Specific Book (GID)</option>
                             <option value="review_book_gid">Review Specific Book (GID)</option>
                             <option value="add_book_gid">Add Specific Book to Library (GID)</option>
+                            <option value="read_books_with_tag">Read Books with Specific Tag</option>
                             <option value="approved_reports">Approved Reports</option>
                             <option value="notes_created">Notes Created</option>
                         </select>
@@ -768,9 +790,9 @@ function hs_achievements_admin_page_html()
                     </div>
 
                     <div class="step-field">
-                        <label>Target GID (for GID-based metrics)</label>
-                        <input type="number" name="steps[${stepIndex}][target_gid]" placeholder="Optional">
-                        <p class="description">Global ID of the specific book (required for GID metrics).</p>
+                        <label>Target GID or Tag Slug</label>
+                        <input type="text" name="steps[${stepIndex}][target_gid]" placeholder="Optional">
+                        <p class="description">For GID metrics: Enter the book's Global ID (number). For tag metrics: Enter the tag slug (text like "fantasy" or "sci-fi").</p>
                     </div>
 
                     <div class="step-field">
@@ -824,6 +846,33 @@ function hs_get_icon_symbol($icon_type) {
 }
 
 
+/**
+ * Get count of completed books with a specific tag for a user
+ */
+function hs_get_tag_read_count($user_id, $tag_slug) {
+    global $wpdb;
+
+    $user_books_table = $wpdb->prefix . 'user_books';
+    $book_tags_table = $wpdb->prefix . 'hs_book_tags';
+
+    $count = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(DISTINCT ub.book_id)
+         FROM $user_books_table ub
+         INNER JOIN {$wpdb->posts} p ON ub.book_id = p.ID
+         INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+         INNER JOIN $book_tags_table bt ON p.ID = bt.book_id
+         WHERE ub.user_id = %d
+         AND bt.tag_slug = %s
+         AND pm.meta_key = 'nop'
+         AND ub.current_page >= CAST(pm.meta_value AS UNSIGNED)
+         AND CAST(pm.meta_value AS UNSIGNED) > 0",
+        $user_id,
+        $tag_slug
+    ));
+
+    return (int)$count;
+}
+
 // Check and unlock achievements for a given user
 function hs_check_user_achievements($user_id)
 {
@@ -873,7 +922,7 @@ function hs_check_user_achievements($user_id)
     {
         $user_stats[$metric] = (int) get_user_meta($user_id, $meta_key, true);
     }
-    
+
     // --- PHASE 2: CHECK EACH UNLOCKED ACHIEVEMENT ---
 
     foreach ($unearned_achievements as $achievement)
@@ -884,18 +933,30 @@ function hs_check_user_achievements($user_id)
 
         // 1. Handle the custom 'author_read_count' metric
         if ($metric === 'author_read_count') {
-            $author_id = (int) $achievement->author_term_id; 
-            
+            $author_id = (int) $achievement->author_term_id;
+
             if ($author_id > 0) {
                 // IMPORTANT: Rely on the external function to calculate the count
                 $current_value = hs_get_author_read_count_by_id($user_id, $author_id);
-                
+
                 if ($current_value >= $achievement->unlock_value) {
                     $unlocked = true;
                 }
             }
-        } 
-        // 2. Handle all other simple user meta metrics
+        }
+        // 2. Handle tag-based achievements
+        elseif ($metric === 'tag_read_count') {
+            $tag_slug = trim($achievement->condition_data);
+
+            if (!empty($tag_slug)) {
+                $current_value = hs_get_tag_read_count($user_id, $tag_slug);
+
+                if ($current_value >= $achievement->unlock_value) {
+                    $unlocked = true;
+                }
+            }
+        }
+        // 3. Handle all other simple user meta metrics
         elseif (isset($user_stats[$metric])) {
             $current_value = $user_stats[$metric];
 
@@ -904,7 +965,7 @@ function hs_check_user_achievements($user_id)
             }
         }
 
-        // 3. Perform the unlock action if conditions met
+        // 4. Perform the unlock action if conditions met
         if ($unlocked) {
             $wpdb->insert(
                 $user_achievements_table,

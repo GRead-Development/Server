@@ -29,7 +29,7 @@ function hs_multistep_achievements_create_tables() {
         step_description TEXT,
         metric VARCHAR(50) NOT NULL,
         target_value INT NOT NULL,
-        target_gid INT DEFAULT NULL,
+        target_gid VARCHAR(255) DEFAULT NULL,
         requires_previous_step TINYINT(1) DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
@@ -251,10 +251,27 @@ function hs_get_step_metric_value($user_id, $step) {
     $metric = $step->metric;
     $target_gid = $step->target_gid;
 
+    // Handle tag-based metrics
+    if ($metric === 'read_books_with_tag' && $target_gid) {
+        // For tag metrics, target_gid contains the tag slug
+        $tag_slug = trim($target_gid);
+        if (!empty($tag_slug)) {
+            return hs_get_tag_read_count($user_id, $tag_slug);
+        }
+        return 0;
+    }
+
     // Handle GID-specific metrics
     if ($target_gid && strpos($metric, '_gid') !== false) {
         $user_books_table = $wpdb->prefix . 'user_books';
         $gid_table = $wpdb->prefix . 'hs_gid';
+
+        // Check if target_gid is numeric (actual GID) vs string (tag slug)
+        if (!is_numeric($target_gid)) {
+            return 0; // Invalid GID
+        }
+
+        $target_gid = (int)$target_gid;
 
         switch ($metric) {
             case 'read_book_gid':
@@ -341,6 +358,31 @@ function hs_get_user_achievement_progress($user_id, $achievement_id) {
 
     return $progress;
 }
+
+/**
+ * Migrate achievement_steps table to change target_gid from INT to VARCHAR
+ */
+function hs_migrate_target_gid_to_varchar() {
+    global $wpdb;
+    $steps_table = $wpdb->prefix . 'hs_achievement_steps';
+
+    // Check if table exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$steps_table'") != $steps_table) {
+        return;
+    }
+
+    // Check current column type
+    $column_info = $wpdb->get_row($wpdb->prepare(
+        "SHOW COLUMNS FROM $steps_table LIKE %s",
+        'target_gid'
+    ));
+
+    // If column exists and is INT, convert it to VARCHAR
+    if ($column_info && strpos(strtolower($column_info->Type), 'int') !== false) {
+        $wpdb->query("ALTER TABLE $steps_table MODIFY COLUMN target_gid VARCHAR(255) DEFAULT NULL");
+    }
+}
+add_action('admin_init', 'hs_migrate_target_gid_to_varchar');
 
 // Hook into stats updates
 add_action('hs_stats_updated', 'hs_check_multistep_achievements', 10, 1);
