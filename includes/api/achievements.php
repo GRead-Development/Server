@@ -463,6 +463,38 @@ function gread_get_user_stats_for_achievements($user_id) {
  * Format achievement data for API response
  */
 function gread_format_achievement($achievement) {
+    global $wpdb;
+
+    // Get SVG URL if available
+    $svg_url = null;
+    if (!empty($achievement->icon_svg_path)) {
+        $upload_dir = wp_upload_dir();
+        $svg_url = $upload_dir['baseurl'] . $achievement->icon_svg_path;
+    }
+
+    // Get steps if this is a multi-step achievement
+    $steps = [];
+    $steps_table = $wpdb->prefix . 'hs_achievement_steps';
+    $achievement_steps = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $steps_table WHERE achievement_id = %d ORDER BY step_order ASC",
+        $achievement->id
+    ));
+
+    if (!empty($achievement_steps)) {
+        foreach ($achievement_steps as $step) {
+            $steps[] = array(
+                'id' => intval($step->id),
+                'order' => intval($step->step_order),
+                'name' => $step->step_name,
+                'description' => $step->step_description,
+                'metric' => $step->metric,
+                'target_value' => intval($step->target_value),
+                'target_gid' => $step->target_gid ? intval($step->target_gid) : null,
+                'requires_previous_step' => boolval($step->requires_previous_step)
+            );
+        }
+    }
+
     return array(
         'id' => intval($achievement->id),
         'slug' => $achievement->slug,
@@ -471,13 +503,16 @@ function gread_format_achievement($achievement) {
         'icon' => array(
             'type' => $achievement->icon_type,
             'color' => $achievement->icon_color,
-            'symbol' => function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐'
+            'symbol' => function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐',
+            'svg_url' => $svg_url
         ),
         'unlock_requirements' => array(
             'metric' => $achievement->unlock_metric,
             'value' => intval($achievement->unlock_value),
             'condition' => $achievement->unlock_condition
         ),
+        'steps' => $steps,
+        'is_multistep' => !empty($steps),
         'reward' => intval($achievement->points_reward),
         'is_hidden' => boolval($achievement->is_hidden),
         'display_order' => intval($achievement->display_order)
@@ -489,8 +524,58 @@ function gread_format_achievement($achievement) {
  * Format achievement with user progress
  */
 function gread_format_achievement_with_progress($achievement, $user_stats) {
+    global $wpdb;
+
     $current_value = isset($user_stats[$achievement->unlock_metric]) ? $user_stats[$achievement->unlock_metric] : 0;
     $progress_percentage = $achievement->unlock_value > 0 ? min(100, ($current_value / $achievement->unlock_value) * 100) : 0;
+
+    // Get SVG URL if available
+    $svg_url = null;
+    if (!empty($achievement->icon_svg_path)) {
+        $upload_dir = wp_upload_dir();
+        $svg_url = $upload_dir['baseurl'] . $achievement->icon_svg_path;
+    }
+
+    // Get steps and step progress if this is a multi-step achievement
+    $steps = [];
+    $steps_table = $wpdb->prefix . 'hs_achievement_steps';
+    $progress_table = $wpdb->prefix . 'hs_user_step_progress';
+
+    $achievement_steps = $wpdb->get_results($wpdb->prepare(
+        "SELECT s.*, p.current_value, p.completed, p.date_completed
+         FROM $steps_table s
+         LEFT JOIN $progress_table p ON s.id = p.step_id AND p.user_id = %d
+         WHERE s.achievement_id = %d
+         ORDER BY s.step_order ASC",
+        get_current_user_id(),
+        $achievement->id
+    ));
+
+    if (!empty($achievement_steps)) {
+        foreach ($achievement_steps as $step) {
+            $step_current = intval($step->current_value ?? 0);
+            $step_target = intval($step->target_value);
+            $step_progress = $step_target > 0 ? min(100, ($step_current / $step_target) * 100) : 0;
+
+            $steps[] = array(
+                'id' => intval($step->id),
+                'order' => intval($step->step_order),
+                'name' => $step->step_name,
+                'description' => $step->step_description,
+                'metric' => $step->metric,
+                'target_value' => $step_target,
+                'target_gid' => $step->target_gid ? intval($step->target_gid) : null,
+                'requires_previous_step' => boolval($step->requires_previous_step),
+                'progress' => array(
+                    'current' => $step_current,
+                    'required' => $step_target,
+                    'percentage' => round($step_progress, 2)
+                ),
+                'is_completed' => boolval($step->completed ?? false),
+                'date_completed' => $step->date_completed ?? null
+            );
+        }
+    }
 
     return array(
         'id' => intval($achievement->id),
@@ -500,7 +585,8 @@ function gread_format_achievement_with_progress($achievement, $user_stats) {
         'icon' => array(
             'type' => $achievement->icon_type,
             'color' => $achievement->icon_color,
-            'symbol' => function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐'
+            'symbol' => function_exists('hs_get_icon_symbol') ? hs_get_icon_symbol($achievement->icon_type) : '⭐',
+            'svg_url' => $svg_url
         ),
         'unlock_requirements' => array(
             'metric' => $achievement->unlock_metric,
@@ -512,6 +598,8 @@ function gread_format_achievement_with_progress($achievement, $user_stats) {
             'required' => intval($achievement->unlock_value),
             'percentage' => round($progress_percentage, 2)
         ),
+        'steps' => $steps,
+        'is_multistep' => !empty($steps),
         'is_unlocked' => boolval($achievement->is_unlocked),
         'date_unlocked' => $achievement->is_unlocked ? $achievement->date_unlocked : null,
         'reward' => intval($achievement->points_reward),

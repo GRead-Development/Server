@@ -23,6 +23,7 @@ function hs_achievements_create_table()
 		description text,
 		icon_type varchar(20) NOT NULL DEFAULT 'star',
 		icon_color varchar(7) NOT NULL DEFAULT '#FFD700',
+		icon_svg_path varchar(255) DEFAULT NULL,
 		unlock_metric varchar(50) NOT NULL,
 		unlock_value int(11) NOT NULL,
 		author_term_id bigint(20) DEFAULT NULL,
@@ -58,6 +59,84 @@ function hs_achievements_create_table()
 
 
 
+/**
+ * Migrate achievements table to add icon_svg_path column if it doesn't exist
+ */
+function hs_achievements_migrate_add_svg_column() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'hs_achievements';
+
+    // Check if table exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        return;
+    }
+
+    // Check if column exists
+    $column_exists = $wpdb->get_results($wpdb->prepare(
+        "SHOW COLUMNS FROM $table_name LIKE %s",
+        'icon_svg_path'
+    ));
+
+    // Add column if it doesn't exist
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table_name ADD COLUMN icon_svg_path VARCHAR(255) DEFAULT NULL AFTER icon_color");
+    }
+}
+add_action('admin_init', 'hs_achievements_migrate_add_svg_column');
+
+/**
+ * Handle SVG file upload for achievement icons
+ */
+function hs_handle_achievement_svg_upload($file) {
+    if (empty($file) || $file['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    // Validate file type
+    $file_type = wp_check_filetype($file['name']);
+    if ($file_type['ext'] !== 'svg') {
+        return new WP_Error('invalid_file', 'Only SVG files are allowed.');
+    }
+
+    // Sanitize filename
+    $filename = sanitize_file_name($file['name']);
+
+    // Create uploads directory if it doesn't exist
+    $upload_dir = wp_upload_dir();
+    $achievement_icons_dir = $upload_dir['basedir'] . '/achievement-icons';
+
+    if (!file_exists($achievement_icons_dir)) {
+        wp_mkdir_p($achievement_icons_dir);
+    }
+
+    // Generate unique filename
+    $target_file = $achievement_icons_dir . '/' . time() . '_' . $filename;
+
+    // Move uploaded file
+    if (move_uploaded_file($file['tmp_name'], $target_file)) {
+        // Return relative path
+        return str_replace($upload_dir['basedir'], '', $target_file);
+    }
+
+    return new WP_Error('upload_failed', 'Failed to upload file.');
+}
+
+/**
+ * Delete old SVG icon file
+ */
+function hs_delete_achievement_svg($svg_path) {
+    if (empty($svg_path)) {
+        return;
+    }
+
+    $upload_dir = wp_upload_dir();
+    $full_path = $upload_dir['basedir'] . $svg_path;
+
+    if (file_exists($full_path)) {
+        unlink($full_path);
+    }
+}
+
 // Add the achievement manager to the administrator panel
 function hs_achievements_add_admin_page()
 {
@@ -84,7 +163,7 @@ function hs_achievements_admin_page_html()
 	{
 		$achievement_id = isset($_POST['achievement_id']) ? intval($_POST['achievement_id']) : 0;
 
-		// 1. Prepare standard data (Now including all necessary fields)
+		// 1. Prepare standard data
 		$data = [
 			'slug'            => sanitize_key($_POST['slug']),
 			'name'            => sanitize_text_field($_POST['name']),
@@ -93,76 +172,145 @@ function hs_achievements_admin_page_html()
 			'icon_color'      => sanitize_hex_color($_POST['icon_color']),
 			'unlock_metric'   => sanitize_key($_POST['unlock_metric']),
 			'unlock_value'    => intval($_POST['unlock_value']),
-			'unlock_condition' => sanitize_text_field($_POST['unlock_condition'] ?? 'simple'), // Assuming you have an input field for this
-			'condition_data'  => sanitize_textarea_field($_POST['condition_data'] ?? ''), // Assuming you have an input field for this
+			'unlock_condition' => sanitize_text_field($_POST['unlock_condition'] ?? 'simple'),
+			'condition_data'  => sanitize_textarea_field($_POST['condition_data'] ?? ''),
 			'points_reward'   => intval($_POST['points_reward']),
 			'is_hidden'       => isset($_POST['is_hidden']) ? 1 : 0,
 			'display_order'   => intval($_POST['display_order']),
 		];
 
-		// 2. Handle the specific 'author_term_id' field
+		// 2. Handle SVG upload
+		if (!empty($_FILES['icon_svg']) && $_FILES['icon_svg']['error'] === UPLOAD_ERR_OK) {
+			$svg_result = hs_handle_achievement_svg_upload($_FILES['icon_svg']);
+
+			if (is_wp_error($svg_result)) {
+				echo '<div class="notice notice-error"><p>SVG Upload Error: ' . esc_html($svg_result->get_error_message()) . '</p></div>';
+			} else {
+				// Delete old SVG if updating
+				if ($achievement_id > 0) {
+					$old_achievement = $wpdb->get_row($wpdb->prepare("SELECT icon_svg_path FROM $table_name WHERE id = %d", $achievement_id));
+					if ($old_achievement && $old_achievement->icon_svg_path) {
+						hs_delete_achievement_svg($old_achievement->icon_svg_path);
+					}
+				}
+				$data['icon_svg_path'] = $svg_result;
+			}
+		} elseif (isset($_POST['remove_svg']) && $_POST['remove_svg'] === '1') {
+			// Remove SVG if checkbox is checked
+			if ($achievement_id > 0) {
+				$old_achievement = $wpdb->get_row($wpdb->prepare("SELECT icon_svg_path FROM $table_name WHERE id = %d", $achievement_id));
+				if ($old_achievement && $old_achievement->icon_svg_path) {
+					hs_delete_achievement_svg($old_achievement->icon_svg_path);
+				}
+			}
+			$data['icon_svg_path'] = null;
+		}
+
+		// 3. Handle the specific 'author_term_id' field
 		if ($data['unlock_metric'] === 'author_read_count') {
 			$author_id = isset($_POST['author_term_id']) ? intval($_POST['author_term_id']) : 0;
-			// Use an empty string for NULL compatibility in wpdb format
-			$data['author_term_id'] = $author_id > 0 ? (string)$author_id : NULL; 
+			$data['author_term_id'] = $author_id > 0 ? (string)$author_id : NULL;
 		} else {
 			$data['author_term_id'] = NULL;
 		}
 
-		// 3. Define the final, ordered data array and format array 
-		//    (Matches the expected table structure: slug -> name -> ... -> author_term_id)
+		// 4. Define the final data array and format array
 		$final_data = [
 			'slug'             => $data['slug'],
 			'name'             => $data['name'],
 			'description'      => $data['description'],
 			'icon_type'        => $data['icon_type'],
 			'icon_color'       => $data['icon_color'],
-			'unlock_metric'    => $data['unlock_metric'],
-			'unlock_value'     => $data['unlock_value'],
-			// *** INSERT MISSING COLUMNS HERE ***
-			'unlock_condition' => $data['unlock_condition'], 
-			'condition_data'   => $data['condition_data'],
-			// **********************************
-			'points_reward'    => $data['points_reward'],
-			'is_hidden'        => $data['is_hidden'],
-			'display_order'    => $data['display_order'],
-			'author_term_id'   => $data['author_term_id'], 
 		];
 
-		// The format array must also match the final data array (13 fields total, if I counted correctly)
 		$final_format = [
 			'%s', // slug
 			'%s', // name
 			'%s', // description
 			'%s', // icon_type
 			'%s', // icon_color
+		];
+
+		// Add icon_svg_path if it was set
+		if (isset($data['icon_svg_path'])) {
+			$final_data['icon_svg_path'] = $data['icon_svg_path'];
+			$final_format[] = '%s';
+		}
+
+		$final_data = array_merge($final_data, [
+			'unlock_metric'    => $data['unlock_metric'],
+			'unlock_value'     => $data['unlock_value'],
+			'unlock_condition' => $data['unlock_condition'],
+			'condition_data'   => $data['condition_data'],
+			'points_reward'    => $data['points_reward'],
+			'is_hidden'        => $data['is_hidden'],
+			'display_order'    => $data['display_order'],
+			'author_term_id'   => $data['author_term_id'],
+		]);
+
+		$final_format = array_merge($final_format, [
 			'%s', // unlock_metric
 			'%d', // unlock_value
-			'%s', // unlock_condition (Assuming string)
-			'%s', // condition_data (Assuming string/text)
+			'%s', // unlock_condition
+			'%s', // condition_data
 			'%d', // points_reward
 			'%d', // is_hidden
 			'%d', // display_order
-			'%d', // author_term_id 
-		];
+			'%d', // author_term_id
+		]);
 
-
-		// 4. Perform database action
+		// 5. Perform database action
 		if ($achievement_id > 0)
 		{
 			$wpdb->update($table_name, $final_data, ['id' => $achievement_id], $final_format, ['%d']);
+			$current_achievement_id = $achievement_id;
 			echo '<div class="notice notice-success"><p>Achievement updated successfully.</p></div>';
 		}
-
 		else
 		{
 			$wpdb->insert($table_name, $final_data, $final_format);
-			// Check for error after insert
 			if ($wpdb->last_error !== '') {
 				error_log("Achievement Insert Error: " . $wpdb->last_error);
 				echo '<div class="notice notice-error"><p>Error creating achievement: ' . esc_html($wpdb->last_error) . '</p></div>';
 			} else {
+				$current_achievement_id = $wpdb->insert_id;
 				echo '<div class="notice notice-success"><p>Achievement created successfully.</p></div>';
+			}
+		}
+
+		// 6. Handle multi-step achievement steps
+		if (isset($current_achievement_id) && $current_achievement_id > 0) {
+			// Check if this is a multi-step achievement
+			$is_multistep = isset($_POST['is_multistep']) && $_POST['is_multistep'] === '1';
+
+			if ($is_multistep) {
+				// Delete existing steps if updating
+				$steps_table = $wpdb->prefix . 'hs_achievement_steps';
+				$wpdb->delete($steps_table, ['achievement_id' => $current_achievement_id]);
+
+				// Add new steps
+				if (!empty($_POST['steps']) && is_array($_POST['steps'])) {
+					foreach ($_POST['steps'] as $step) {
+						$step_data = [
+							'achievement_id' => $current_achievement_id,
+							'step_order' => intval($step['order']),
+							'step_name' => sanitize_text_field($step['name']),
+							'step_description' => sanitize_textarea_field($step['description']),
+							'metric' => sanitize_key($step['metric']),
+							'target_value' => intval($step['target_value']),
+							'target_gid' => !empty($step['target_gid']) ? intval($step['target_gid']) : null,
+							'requires_previous_step' => isset($step['requires_previous']) ? 1 : 0
+						];
+
+						$wpdb->insert($steps_table, $step_data, [
+							'%d', '%d', '%s', '%s', '%s', '%d', '%d', '%d'
+						]);
+					}
+				}
+			} else {
+				// If not multistep, remove any existing steps
+				$steps_table = $wpdb->prefix . 'hs_achievement_steps';
+				$wpdb->delete($steps_table, ['achievement_id' => $current_achievement_id]);
 			}
 		}
 	}
@@ -172,20 +320,48 @@ function hs_achievements_admin_page_html()
 	{
 		if (wp_verify_nonce($_GET['_wpnonce'], 'hs_delete_achievement_' . $_GET['id']))
 		{
-			$wpdb -> delete($table_name, ['id' => intval($_GET['id'])]);
+			$delete_id = intval($_GET['id']);
+
+			// Get achievement to delete SVG file
+			$achievement_to_delete = $wpdb->get_row($wpdb->prepare("SELECT icon_svg_path FROM $table_name WHERE id = %d", $delete_id));
+			if ($achievement_to_delete && $achievement_to_delete->icon_svg_path) {
+				hs_delete_achievement_svg($achievement_to_delete->icon_svg_path);
+			}
+
+			// Delete achievement steps
+			$steps_table = $wpdb->prefix . 'hs_achievement_steps';
+			$wpdb->delete($steps_table, ['achievement_id' => $delete_id]);
+
+			// Delete user progress on steps
+			$progress_table = $wpdb->prefix . 'hs_user_step_progress';
+			$wpdb->delete($progress_table, ['achievement_id' => $delete_id]);
+
+			// Delete achievement
+			$wpdb->delete($table_name, ['id' => $delete_id]);
+
 			echo '<div class="notice notice-success"><p>Achievement deleted successfully.</p></div>';
 		}
 	}
 
 	// Retrieve details about an achievement to edit
 	$achievement_to_edit = null;
+	$steps_to_edit = [];
 	if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id']))
 	{
-		$achievement_to_edit = $wpdb -> get_row($wpdb -> prepare("SELECT * FROM $table_name WHERE id = %d", intval($_GET['id'])));
+		$achievement_to_edit = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE id = %d", intval($_GET['id'])));
+
+		// Get steps if this is a multi-step achievement
+		if ($achievement_to_edit) {
+			$steps_table = $wpdb->prefix . 'hs_achievement_steps';
+			$steps_to_edit = $wpdb->get_results($wpdb->prepare(
+				"SELECT * FROM $steps_table WHERE achievement_id = %d ORDER BY step_order ASC",
+				$achievement_to_edit->id
+			));
+		}
 	}
 
 
-	$all_achievements = $wpdb -> get_results("SELECT * FROM $table_name ORDER BY display_order ASC, name ASC");
+	$all_achievements = $wpdb->get_results("SELECT * FROM $table_name ORDER BY display_order ASC, name ASC");
 	?>
 
 	<div class="wrap">
@@ -196,9 +372,9 @@ function hs_achievements_admin_page_html()
 		<div class="col-wrap">
 			<h2><?php echo $achievement_to_edit ? 'Edit Achievement' : 'Add New Achievement'; ?></h2>
 
-		<form method="post">
+		<form method="post" enctype="multipart/form-data">
 			<?php wp_nonce_field('hs_save_achievement', 'hs_save_achievement_nonce'); ?>
-			<input type="hidden" name="achievement_id" value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit -> id) : '0'; ?>">
+			<input type="hidden" name="achievement_id" value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->id) : '0'; ?>">
 
  <div class="form-field">
                             <label for="name">Achievement Name *</label>
@@ -217,9 +393,33 @@ function hs_achievements_admin_page_html()
                         </div>
                         
                         <h3>Icon Settings</h3>
-                        
+
                         <div class="form-field">
-                            <label for="icon_type">Icon Type</label>
+                            <label for="icon_svg">Custom SVG Icon (Optional)</label>
+                            <input type="file" name="icon_svg" id="icon_svg" accept=".svg">
+                            <p class="description">Upload a custom SVG file. If provided, this will be used instead of the icon type below.</p>
+                            <?php if ($achievement_to_edit && !empty($achievement_to_edit->icon_svg_path)): ?>
+                                <div style="margin-top: 10px;">
+                                    <strong>Current SVG:</strong>
+                                    <div style="width: 50px; height: 50px; border: 2px solid #ddd; border-radius: 8px; padding: 5px; display: inline-block; vertical-align: middle; margin-left: 10px;">
+                                        <?php
+                                        $upload_dir = wp_upload_dir();
+                                        $svg_file = $upload_dir['basedir'] . $achievement_to_edit->icon_svg_path;
+                                        if (file_exists($svg_file)) {
+                                            echo file_get_contents($svg_file);
+                                        }
+                                        ?>
+                                    </div>
+                                    <label style="margin-left: 10px;">
+                                        <input type="checkbox" name="remove_svg" value="1">
+                                        Remove current SVG
+                                    </label>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="icon_type">Icon Type (Fallback)</label>
                             <select name="icon_type" id="icon_type">
                                 <option value="star" <?php echo $achievement_to_edit && $achievement_to_edit->icon_type === 'star' ? 'selected' : ''; ?>>⭐ Star</option>
                                 <option value="trophy" <?php echo $achievement_to_edit && $achievement_to_edit->icon_type === 'trophy' ? 'selected' : ''; ?>>🏆 Trophy</option>
@@ -228,8 +428,9 @@ function hs_achievements_admin_page_html()
                                 <option value="fire" <?php echo $achievement_to_edit && $achievement_to_edit->icon_type === 'fire' ? 'selected' : ''; ?>>🔥 Fire</option>
                                 <option value="crown" <?php echo $achievement_to_edit && $achievement_to_edit->icon_type === 'crown' ? 'selected' : ''; ?>>👑 Crown</option>
                             </select>
+                            <p class="description">Used when no custom SVG is provided.</p>
                         </div>
-                        
+
                         <div class="form-field">
                             <label for="icon_color">Icon Color</label>
                             <input type="color" name="icon_color" id="icon_color" value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->icon_color) : '#FFD700'; ?>">
@@ -294,8 +495,81 @@ function hs_achievements_admin_page_html()
                         <div class="form-field">
                             <label for="unlock_value">Unlock Value *</label>
                             <input type="number" name="unlock_value" id="unlock_value" value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->unlock_value) : ''; ?>" required>
+                            <p class="description">This is only used for simple achievements. Multi-step achievements use step-specific values.</p>
                         </div>
-                        
+
+                        <h3>Multi-Step Achievement</h3>
+
+                        <div class="form-field">
+                            <label>
+                                <input type="checkbox" name="is_multistep" id="is_multistep" value="1" <?php echo !empty($steps_to_edit) ? 'checked' : ''; ?>>
+                                Enable Multi-Step Achievement
+                            </label>
+                            <p class="description">Create achievements with multiple sequential steps and GID tracking.</p>
+                        </div>
+
+                        <div id="multistep_container" style="display: <?php echo !empty($steps_to_edit) ? 'block' : 'none'; ?>;">
+                            <div id="steps_list">
+                                <?php if (!empty($steps_to_edit)): ?>
+                                    <?php foreach ($steps_to_edit as $index => $step): ?>
+                                        <div class="achievement-step" data-step-index="<?php echo $index; ?>">
+                                            <h4>Step <?php echo $index + 1; ?></h4>
+                                            <input type="hidden" name="steps[<?php echo $index; ?>][order]" value="<?php echo $index + 1; ?>">
+
+                                            <div class="step-field">
+                                                <label>Step Name *</label>
+                                                <input type="text" name="steps[<?php echo $index; ?>][name]" value="<?php echo esc_attr($step->step_name); ?>" required>
+                                            </div>
+
+                                            <div class="step-field">
+                                                <label>Step Description</label>
+                                                <textarea name="steps[<?php echo $index; ?>][description]" rows="2"><?php echo esc_textarea($step->step_description); ?></textarea>
+                                            </div>
+
+                                            <div class="step-field">
+                                                <label>Metric *</label>
+                                                <select name="steps[<?php echo $index; ?>][metric]" required>
+                                                    <option value="points" <?php selected($step->metric, 'points'); ?>>Points Earned</option>
+                                                    <option value="books_read" <?php selected($step->metric, 'books_read'); ?>>Books Completed</option>
+                                                    <option value="pages_read" <?php selected($step->metric, 'pages_read'); ?>>Pages Read</option>
+                                                    <option value="read_book_gid" <?php selected($step->metric, 'read_book_gid'); ?>>Read Specific Book (GID)</option>
+                                                    <option value="review_book_gid" <?php selected($step->metric, 'review_book_gid'); ?>>Review Specific Book (GID)</option>
+                                                    <option value="add_book_gid" <?php selected($step->metric, 'add_book_gid'); ?>>Add Specific Book to Library (GID)</option>
+                                                    <option value="approved_reports" <?php selected($step->metric, 'approved_reports'); ?>>Approved Reports</option>
+                                                    <option value="notes_created" <?php selected($step->metric, 'notes_created'); ?>>Notes Created</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="step-field">
+                                                <label>Target Value *</label>
+                                                <input type="number" name="steps[<?php echo $index; ?>][target_value]" value="<?php echo esc_attr($step->target_value); ?>" required>
+                                            </div>
+
+                                            <div class="step-field">
+                                                <label>Target GID (for GID-based metrics)</label>
+                                                <input type="number" name="steps[<?php echo $index; ?>][target_gid]" value="<?php echo esc_attr($step->target_gid); ?>" placeholder="Optional">
+                                                <p class="description">Global ID of the specific book (required for GID metrics).</p>
+                                            </div>
+
+                                            <div class="step-field">
+                                                <label>
+                                                    <input type="checkbox" name="steps[<?php echo $index; ?>][requires_previous]" <?php checked($step->requires_previous_step, 1); ?>>
+                                                    Requires previous step to be completed first
+                                                </label>
+                                            </div>
+
+                                            <button type="button" class="button button-secondary remove-step">Remove Step</button>
+                                            <hr>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+
+                            <button type="button" id="add_step" class="button">Add Step</button>
+                        </div>
+
+                        <h3>Rewards & Settings</h3>
+
                         <div class="form-field">
                             <label for="points_reward">Points Reward</label>
                             <input type="number" name="points_reward" id="points_reward" value="<?php echo $achievement_to_edit ? esc_attr($achievement_to_edit->points_reward) : '0'; ?>">
@@ -352,7 +626,19 @@ function hs_achievements_admin_page_html()
                                         </td>
                                         <td>
                                             <div class="hs-achievement-icon-preview" style="background-color: <?php echo esc_attr($achievement->icon_color); ?>">
-                                                <?php echo hs_get_icon_symbol($achievement->icon_type); ?>
+                                                <?php
+                                                if (!empty($achievement->icon_svg_path)) {
+                                                    $upload_dir = wp_upload_dir();
+                                                    $svg_file = $upload_dir['basedir'] . $achievement->icon_svg_path;
+                                                    if (file_exists($svg_file)) {
+                                                        echo file_get_contents($svg_file);
+                                                    } else {
+                                                        echo hs_get_icon_symbol($achievement->icon_type);
+                                                    }
+                                                } else {
+                                                    echo hs_get_icon_symbol($achievement->icon_type);
+                                                }
+                                                ?>
                                             </div>
                                         </td>
                                         <td>
@@ -400,7 +686,127 @@ function hs_achievements_admin_page_html()
             font-size: 20px;
             border: 2px solid #ddd;
         }
+        .achievement-step {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .achievement-step h4 {
+            margin-top: 0;
+            color: #0073aa;
+        }
+        .step-field {
+            margin-bottom: 10px;
+        }
+        .step-field label {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: 600;
+        }
+        .step-field input[type="text"],
+        .step-field input[type="number"],
+        .step-field select,
+        .step-field textarea {
+            width: 100%;
+        }
+        .step-field .description {
+            color: #666;
+            font-size: 11px;
+            margin-top: 3px;
+        }
     </style>
+
+    <script>
+    jQuery(document).ready(function($) {
+        let stepIndex = <?php echo count($steps_to_edit); ?>;
+
+        // Toggle multistep container
+        $('#is_multistep').on('change', function() {
+            if ($(this).is(':checked')) {
+                $('#multistep_container').slideDown();
+            } else {
+                $('#multistep_container').slideUp();
+            }
+        });
+
+        // Add new step
+        $('#add_step').on('click', function() {
+            const newStep = `
+                <div class="achievement-step" data-step-index="${stepIndex}">
+                    <h4>Step ${stepIndex + 1}</h4>
+                    <input type="hidden" name="steps[${stepIndex}][order]" value="${stepIndex + 1}">
+
+                    <div class="step-field">
+                        <label>Step Name *</label>
+                        <input type="text" name="steps[${stepIndex}][name]" required>
+                    </div>
+
+                    <div class="step-field">
+                        <label>Step Description</label>
+                        <textarea name="steps[${stepIndex}][description]" rows="2"></textarea>
+                    </div>
+
+                    <div class="step-field">
+                        <label>Metric *</label>
+                        <select name="steps[${stepIndex}][metric]" required>
+                            <option value="points">Points Earned</option>
+                            <option value="books_read">Books Completed</option>
+                            <option value="pages_read">Pages Read</option>
+                            <option value="read_book_gid">Read Specific Book (GID)</option>
+                            <option value="review_book_gid">Review Specific Book (GID)</option>
+                            <option value="add_book_gid">Add Specific Book to Library (GID)</option>
+                            <option value="approved_reports">Approved Reports</option>
+                            <option value="notes_created">Notes Created</option>
+                        </select>
+                    </div>
+
+                    <div class="step-field">
+                        <label>Target Value *</label>
+                        <input type="number" name="steps[${stepIndex}][target_value]" required>
+                    </div>
+
+                    <div class="step-field">
+                        <label>Target GID (for GID-based metrics)</label>
+                        <input type="number" name="steps[${stepIndex}][target_gid]" placeholder="Optional">
+                        <p class="description">Global ID of the specific book (required for GID metrics).</p>
+                    </div>
+
+                    <div class="step-field">
+                        <label>
+                            <input type="checkbox" name="steps[${stepIndex}][requires_previous]" checked>
+                            Requires previous step to be completed first
+                        </label>
+                    </div>
+
+                    <button type="button" class="button button-secondary remove-step">Remove Step</button>
+                    <hr>
+                </div>
+            `;
+
+            $('#steps_list').append(newStep);
+            stepIndex++;
+            updateStepNumbers();
+        });
+
+        // Remove step
+        $(document).on('click', '.remove-step', function() {
+            if (confirm('Are you sure you want to remove this step?')) {
+                $(this).closest('.achievement-step').remove();
+                updateStepNumbers();
+            }
+        });
+
+        // Update step numbers and order values
+        function updateStepNumbers() {
+            $('.achievement-step').each(function(index) {
+                $(this).find('h4').text('Step ' + (index + 1));
+                $(this).find('input[name*="[order]"]').val(index + 1);
+            });
+        }
+    });
+    </script>
     <?php
 }
 
@@ -655,7 +1061,19 @@ function hs_render_achievements_display()
                         <?php if ($is_hidden): ?>
                             <span class="hidden-icon">?</span>
                         <?php else: ?>
-                            <?php echo hs_get_icon_symbol($achievement->icon_type); ?>
+                            <?php
+                            if (!empty($achievement->icon_svg_path)) {
+                                $upload_dir = wp_upload_dir();
+                                $svg_file = $upload_dir['basedir'] . $achievement->icon_svg_path;
+                                if (file_exists($svg_file)) {
+                                    echo file_get_contents($svg_file);
+                                } else {
+                                    echo hs_get_icon_symbol($achievement->icon_type);
+                                }
+                            } else {
+                                echo hs_get_icon_symbol($achievement->icon_type);
+                            }
+                            ?>
                         <?php endif; ?>
                     </div>
 
