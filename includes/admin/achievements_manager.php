@@ -511,6 +511,7 @@ function hs_achievements_admin_page_html()
 								<option value="books_added" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'books_added' ? 'selected' : ''; ?>>Books Added to Database</option>
 								<option value="approved_reports" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'approved_reports' ? 'selected' : ''; ?>>Approved Reports</option>
 								<option value="notes_created" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'notes_created' ? 'selected' : ''; ?>>Notes Created</option>
+								<option value="citations_created" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'citations_created' ? 'selected' : ''; ?>>Citations Created</option>
 								<option value="author_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'author_read_count' ? 'selected' : ''; ?>>Books by Specific Author</option>
 								<option value="tag_read_count" <?php echo $achievement_to_edit && $achievement_to_edit->unlock_metric === 'tag_read_count' ? 'selected' : ''; ?>>Books with Specific Tag</option>
 							</select>
@@ -617,6 +618,7 @@ function hs_achievements_admin_page_html()
                                                     <option value="read_books_with_tag" <?php selected($step->metric, 'read_books_with_tag'); ?>>Read Books with Specific Tag</option>
                                                     <option value="approved_reports" <?php selected($step->metric, 'approved_reports'); ?>>Approved Reports</option>
                                                     <option value="notes_created" <?php selected($step->metric, 'notes_created'); ?>>Notes Created</option>
+                                                    <option value="citations_created" <?php selected($step->metric, 'citations_created'); ?>>Citations Created</option>
                                                 </select>
                                             </div>
 
@@ -855,6 +857,7 @@ function hs_achievements_admin_page_html()
                             <option value="read_books_with_tag">Read Books with Specific Tag</option>
                             <option value="approved_reports">Approved Reports</option>
                             <option value="notes_created">Notes Created</option>
+                            <option value="citations_created">Citations Created</option>
                         </select>
                     </div>
 
@@ -989,6 +992,7 @@ function hs_check_user_achievements($user_id)
         'books_added' => 'hs_books_added_count',
         'approved_reports' => 'hs_approved_reports_count',
         'notes_created' => 'hs_notes_created_count',
+        'citations_created' => 'hs_citations_created_count',
     ];
 
     $user_stats = [];
@@ -1113,6 +1117,7 @@ function hs_render_achievements_display()
 		'books_added' => 'hs_books_added_count',
 		'approved_reports' => 'hs_approved_reports_count',
 		'notes_created' => 'hs_notes_created_count',
+		'citations_created' => 'hs_citations_created_count',
 	];
 
 	// Retrieve user statistics
@@ -1337,6 +1342,7 @@ function hs_achievement_debug_page_html() {
                 'books_added' => 'hs_books_added_count',
                 'approved_reports' => 'hs_approved_reports_count',
                 'notes_created' => 'hs_notes_created_count',
+                'citations_created' => 'hs_citations_created_count',
             ];
             
             // Get user stats
