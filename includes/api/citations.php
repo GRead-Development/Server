@@ -445,11 +445,3 @@ function gread_get_user_citation_count($request) {
         'count' => $count
     ));
 }
-
-
-/**
- * Permission callback - check if user is logged in
- */
-function gread_check_user_permission() {
-    return is_user_logged_in();
-}
