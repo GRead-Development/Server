@@ -22,12 +22,6 @@ function hs_register_chapter_submissions_api_routes() {
                 'validate_callback' => function($param) {
                     return is_numeric($param);
                 }
-            ],
-            'chapters' => [
-                'required' => true,
-                'validate_callback' => function($param) {
-                    return is_array($param) && !empty($param);
-                }
             ]
         ]
     ]);
