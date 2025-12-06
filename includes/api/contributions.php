@@ -143,10 +143,35 @@ function hs_api_submit_tag_suggestions($request) {
     // Get JSON body
     $json_params = $request->get_json_params();
 
-    if (!isset($json_params['tags']) || !is_array($json_params['tags'])) {
+    // Better error handling with debugging info
+    if (!$json_params) {
         return new WP_REST_Response([
             'success' => false,
-            'message' => 'Tags data is required and must be an array.'
+            'message' => 'Invalid JSON in request body.',
+            'debug' => 'json_params is null - check Content-Type header'
+        ], 400);
+    }
+
+    if (!isset($json_params['tags'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Tags parameter is missing.',
+            'debug' => 'Available params: ' . implode(', ', array_keys($json_params))
+        ], 400);
+    }
+
+    if (!is_array($json_params['tags'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Tags must be an array.',
+            'debug' => 'Tags type: ' . gettype($json_params['tags'])
+        ], 400);
+    }
+
+    if (empty($json_params['tags'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Please provide at least one tag.'
         ], 400);
     }
 
