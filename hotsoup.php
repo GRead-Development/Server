@@ -45,6 +45,12 @@ require_once plugin_dir_path(__FILE__) . 'includes/chapter_submissions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/chapter_submissions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/chapter_submissions_review.php';
 require_once plugin_dir_path(__FILE__) . 'includes/chapter_submissions_display.php';
+// Additional contributions systems (characters, tags, summaries)
+require_once plugin_dir_path(__FILE__) . 'includes/character_submissions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/tag_suggestions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/chapter_summaries.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/contributions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/all_contributions_admin.php';
 // The importer form
 require_once plugin_dir_path(__FILE__) . 'includes/importer.php';
 // Stuff required for the book database to function. The most important functions in HotSoup are in this file.
@@ -132,6 +138,9 @@ register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
 register_activation_hook(__FILE__, 'hs_dnf_books_create_table');
 register_activation_hook(__FILE__, 'hs_multistep_achievements_create_tables');
 register_activation_hook(__FILE__, 'hs_chapter_submissions_create_table');
+register_activation_hook(__FILE__, 'hs_character_submissions_create_table');
+register_activation_hook(__FILE__, 'hs_tag_suggestions_create_table');
+register_activation_hook(__FILE__, 'hs_chapter_summaries_create_table');
 
 // On activation, set up the reviews table
 function hs_reviews_activate()
