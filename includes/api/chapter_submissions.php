@@ -133,7 +133,18 @@ add_action('rest_api_init', 'hs_register_chapter_submissions_api_routes');
 function hs_api_submit_chapters($request) {
     $book_id = intval($request['id']);
     $user_id = get_current_user_id();
-    $chapters = $request['chapters'];
+
+    // Get JSON body
+    $json_params = $request->get_json_params();
+
+    if (!isset($json_params['chapters']) || !is_array($json_params['chapters'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Chapters data is required and must be an array.'
+        ], 400);
+    }
+
+    $chapters = $json_params['chapters'];
 
     // Sanitize chapters data
     $sanitized_chapters = [];
