@@ -116,16 +116,17 @@ jQuery(document).ready(function($) {
                 </div>
             </div>
         `;
-        $('body').append(modal);
+        const $modal = $(modal);
+        $('body').append($modal);
 
         let tags = [];
-        $('#tag-input').on('keypress', function(e) {
+        $modal.find('#tag-input').on('keypress', function(e) {
             if (e.which === 13 || e.which === 44) { // Enter or comma
                 e.preventDefault();
                 const tag = $(this).val().trim();
                 if (tag && !tags.includes(tag)) {
                     tags.push(tag);
-                    $('#tags-container').append(`
+                    $modal.find('#tags-container').append(`
                         <span class="tag-pill">${tag} <span class="remove-tag" data-tag="${tag}">&times;</span></span>
                     `);
                     $(this).val('');
@@ -133,13 +134,13 @@ jQuery(document).ready(function($) {
             }
         });
 
-        $(document).on('click', '.remove-tag', function() {
+        $modal.on('click', '.remove-tag', function() {
             const tag = $(this).data('tag');
             tags = tags.filter(t => t !== tag);
             $(this).closest('.tag-pill').remove();
         });
 
-        $(document).on('click', '#submit-tags-btn', function() {
+        $modal.find('#submit-tags-btn').on('click', function() {
             if (tags.length === 0) {
                 showModalMessage('Please add at least one tag.', 'error');
                 return;
@@ -160,15 +161,15 @@ jQuery(document).ready(function($) {
                 success: function(r) {
                     if (r.success) {
                         showModalMessage(r.message, 'success');
-                        setTimeout(() => { $('.hs-modal-overlay').remove(); location.reload(); }, 2000);
+                        setTimeout(() => { $modal.fadeOut(200, function() { $(this).remove(); }); location.reload(); }, 2000);
                     } else {
                         showModalMessage(r.message, 'error');
-                        $('#submit-tags-btn').prop('disabled', false).text('Submit Tags');
+                        $modal.find('#submit-tags-btn').prop('disabled', false).text('Submit Tags');
                     }
                 },
                 error: function(xhr) {
                     showModalMessage(xhr.responseJSON?.message || 'Error occurred', 'error');
-                    $('#submit-tags-btn').prop('disabled', false).text('Submit Tags');
+                    $modal.find('#submit-tags-btn').prop('disabled', false).text('Submit Tags');
                 }
             });
         });
@@ -208,17 +209,18 @@ jQuery(document).ready(function($) {
                 </div>
             </div>
         `;
-        $('body').append(modal);
+        const $modal = $(modal);
+        $('body').append($modal);
 
-        $('#chapter-summary').on('input', function() {
+        $modal.find('#chapter-summary').on('input', function() {
             const len = $(this).val().length;
-            $('.char-count').text(len + ' / 50 characters');
+            $modal.find('.char-count').text(len + ' / 50 characters');
         });
 
-        $(document).on('click', '#submit-summary-btn', function() {
-            const chapterNum = parseInt($('#chapter-num').val());
-            const chapterTitle = $('#chapter-title').val().trim();
-            const summary = $('#chapter-summary').val().trim();
+        $modal.find('#submit-summary-btn').on('click', function() {
+            const chapterNum = parseInt($modal.find('#chapter-num').val());
+            const chapterTitle = $modal.find('#chapter-title').val().trim();
+            const summary = $modal.find('#chapter-summary').val().trim();
 
             if (!chapterNum || chapterNum < 1) {
                 showModalMessage('Please enter a valid chapter number.', 'error');
@@ -249,15 +251,15 @@ jQuery(document).ready(function($) {
                 success: function(r) {
                     if (r.success) {
                         showModalMessage(r.message, 'success');
-                        setTimeout(() => { $('.hs-modal-overlay').remove(); location.reload(); }, 2000);
+                        setTimeout(() => { $modal.fadeOut(200, function() { $(this).remove(); }); location.reload(); }, 2000);
                     } else {
                         showModalMessage(r.message, 'error');
-                        $('#submit-summary-btn').prop('disabled', false).text('Submit Summary');
+                        $modal.find('#submit-summary-btn').prop('disabled', false).text('Submit Summary');
                     }
                 },
                 error: function(xhr) {
                     showModalMessage(xhr.responseJSON?.message || 'Error occurred', 'error');
-                    $('#submit-summary-btn').prop('disabled', false).text('Submit Summary');
+                    $modal.find('#submit-summary-btn').prop('disabled', false).text('Submit Summary');
                 }
             });
         });
