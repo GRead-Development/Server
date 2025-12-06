@@ -18,8 +18,7 @@ function hs_register_contributions_api_routes() {
         'callback' => 'hs_api_submit_characters',
         'permission_callback' => 'is_user_logged_in',
         'args' => [
-            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }],
-            'characters' => ['required' => true, 'validate_callback' => function($p) { return is_array($p); }]
+            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }]
         ]
     ]);
 
@@ -36,8 +35,7 @@ function hs_register_contributions_api_routes() {
         'callback' => 'hs_api_submit_tag_suggestions',
         'permission_callback' => 'is_user_logged_in',
         'args' => [
-            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }],
-            'tags' => ['required' => true, 'validate_callback' => function($p) { return is_array($p); }]
+            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }]
         ]
     ]);
 
@@ -47,10 +45,7 @@ function hs_register_contributions_api_routes() {
         'callback' => 'hs_api_submit_chapter_summary',
         'permission_callback' => 'is_user_logged_in',
         'args' => [
-            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }],
-            'chapter_number' => ['required' => true],
-            'chapter_title' => ['required' => false],
-            'summary' => ['required' => true]
+            'id' => ['required' => true, 'validate_callback' => function($p) { return is_numeric($p); }]
         ]
     ]);
 
