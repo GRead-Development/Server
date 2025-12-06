@@ -40,6 +40,11 @@ require_once plugin_dir_path(__FILE__) . 'includes/search/filter.php';
 require_once plugin_dir_path(__FILE__) . 'includes/pending_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/pending_books.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/pending_books_review.php';
+// Chapter submissions system (user-submitted chapter information)
+require_once plugin_dir_path(__FILE__) . 'includes/chapter_submissions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/api/chapter_submissions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/chapter_submissions_review.php';
+require_once plugin_dir_path(__FILE__) . 'includes/chapter_submissions_display.php';
 // The importer form
 require_once plugin_dir_path(__FILE__) . 'includes/importer.php';
 // Stuff required for the book database to function. The most important functions in HotSoup are in this file.
@@ -126,6 +131,7 @@ register_activation_hook(__FILE__, 'hs_authors_series_activate');
 register_activation_hook(__FILE__, 'hs_flush_permalinks_on_activation');
 register_activation_hook(__FILE__, 'hs_dnf_books_create_table');
 register_activation_hook(__FILE__, 'hs_multistep_achievements_create_tables');
+register_activation_hook(__FILE__, 'hs_chapter_submissions_create_table');
 
 // On activation, set up the reviews table
 function hs_reviews_activate()
