@@ -108,9 +108,19 @@ add_action('rest_api_init', 'hs_register_contributions_api_routes');
 function hs_api_submit_characters($request) {
     $book_id = intval($request['id']);
     $user_id = get_current_user_id();
-    $characters = [];
 
-    foreach ($request['characters'] as $char) {
+    // Get JSON body
+    $json_params = $request->get_json_params();
+
+    if (!isset($json_params['characters']) || !is_array($json_params['characters'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Characters data is required and must be an array.'
+        ], 400);
+    }
+
+    $characters = [];
+    foreach ($json_params['characters'] as $char) {
         $characters[] = [
             'name' => sanitize_text_field($char['name']),
             'description' => isset($char['description']) ? sanitize_text_field($char['description']) : ''
@@ -134,7 +144,18 @@ function hs_api_get_book_characters($request) {
 function hs_api_submit_tag_suggestions($request) {
     $book_id = intval($request['id']);
     $user_id = get_current_user_id();
-    $tags = array_map('sanitize_text_field', $request['tags']);
+
+    // Get JSON body
+    $json_params = $request->get_json_params();
+
+    if (!isset($json_params['tags']) || !is_array($json_params['tags'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Tags data is required and must be an array.'
+        ], 400);
+    }
+
+    $tags = array_map('sanitize_text_field', $json_params['tags']);
 
     $result = hs_submit_tag_suggestions($user_id, $book_id, $tags);
     return new WP_REST_Response($result, $result['success'] ? 200 : 400);
@@ -143,9 +164,20 @@ function hs_api_submit_tag_suggestions($request) {
 function hs_api_submit_chapter_summary($request) {
     $book_id = intval($request['id']);
     $user_id = get_current_user_id();
-    $chapter_number = intval($request['chapter_number']);
-    $chapter_title = isset($request['chapter_title']) ? sanitize_text_field($request['chapter_title']) : '';
-    $summary = sanitize_textarea_field($request['summary']);
+
+    // Get JSON body
+    $json_params = $request->get_json_params();
+
+    if (!isset($json_params['chapter_number']) || !isset($json_params['summary'])) {
+        return new WP_REST_Response([
+            'success' => false,
+            'message' => 'Chapter number and summary are required.'
+        ], 400);
+    }
+
+    $chapter_number = intval($json_params['chapter_number']);
+    $chapter_title = isset($json_params['chapter_title']) ? sanitize_text_field($json_params['chapter_title']) : '';
+    $summary = sanitize_textarea_field($json_params['summary']);
 
     $result = hs_submit_chapter_summary($user_id, $book_id, $chapter_number, $chapter_title, $summary);
     return new WP_REST_Response($result, $result['success'] ? 200 : 400);
