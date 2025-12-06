@@ -197,11 +197,33 @@
 }
 
 /**
- * Submit Chapters Button (on book page)
+ * Contributions Section
  */
-.hs-submit-chapters-btn {
-    display: inline-block;
-    padding: 8px 16px;
+.hs-contributions-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+}
+
+.hs-contributions-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.hs-contribution-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.hs-submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
     background: #0073aa;
     color: #fff;
     border: none;
@@ -210,13 +232,31 @@
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
-    transition: background-color 0.2s;
-    margin-top: 10px;
+    transition: all 0.2s;
 }
 
-.hs-submit-chapters-btn:hover {
+.hs-submit-btn:hover {
     background: #005a87;
     color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.hs-submit-btn .pts {
+    margin-left: 8px;
+    background: rgba(255,255,255,0.2);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.hs-pending-notice {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    padding: 12px;
+    border-radius: 4px;
+    color: #856404;
+    font-weight: 600;
 }
 
 /**
@@ -311,6 +351,207 @@
     padding: 20px 0;
 }
 
+/**
+ * New Contribution Modals Styles
+ */
+.hs-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.hs-modal-content.summary-modal {
+    max-width: 700px;
+}
+
+.char-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.char-row input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.char-row .char-name {
+    flex: 2;
+}
+
+.add-character-btn {
+    width: 100%;
+    padding: 10px;
+    background: #f0f0f0;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 10px 0;
+}
+
+.add-character-btn:hover {
+    background: #e8e8e8;
+}
+
+.tags-input-wrapper {
+    margin: 15px 0;
+}
+
+#tag-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    min-height: 50px;
+}
+
+.tag-pill {
+    background: #0073aa;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tag-pill .remove-tag {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.tag-pill .remove-tag:hover {
+    color: #ffc;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #0073aa;
+    color: #fff;
+    flex: 1;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #005a87;
+}
+
+.btn-primary:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #f1f1f1;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.modal-message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 4px;
+    display: none;
+}
+
+.modal-message.success-msg {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.modal-message.error-msg {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.remove-row {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.remove-row:hover {
+    background: #c82333;
+}
+
 /* Responsive styles */
 @media (max-width: 600px) {
     .hs-chapters-modal-content {
@@ -342,5 +583,17 @@
 
     .hs-chapter-number {
         min-width: auto;
+    }
+
+    .hs-contribution-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .char-row {
+        flex-direction: column;
+    }
+
+    .modal-actions {
+        flex-direction: column;
     }
 }

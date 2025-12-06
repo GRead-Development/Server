@@ -66,20 +66,41 @@ function hs_display_chapters_on_book_page($content) {
         $chapters_html .= '</div>';
     }
 
-    // Add submit button for logged-in users
+    // Add all contribution buttons
+    $chapters_html .= '<div class="hs-contributions-section">';
+    $chapters_html .= '<h3>Contribute to this book</h3>';
+    $chapters_html .= '<div class="hs-contribution-buttons">';
+
     if ($user_id) {
+        // Chapter titles button
         if ($has_pending_submission) {
-            $chapters_html .= '<div class="hs-chapters-pending-notice">';
-            $chapters_html .= '<strong>Your chapter submission is pending review.</strong> Thank you for your contribution!';
-            $chapters_html .= '</div>';
+            $chapters_html .= '<div class="hs-pending-notice">Chapter titles pending review</div>';
         } else {
-            $chapters_html .= '<button class="hs-submit-chapters-btn" data-book-id="' . $book_id . '">';
-            $chapters_html .= 'Submit Chapter Information';
+            $chapters_html .= '<button class="hs-submit-btn hs-submit-chapters-btn" data-book-id="' . $book_id . '">';
+            $chapters_html .= '📚 Submit Chapter Titles <span class="pts">+10 pts</span>';
             $chapters_html .= '</button>';
         }
+
+        // Characters button
+        $chapters_html .= '<button class="hs-submit-btn hs-submit-characters-btn" data-book-id="' . $book_id . '">';
+        $chapters_html .= '👥 Submit Characters <span class="pts">+15 pts</span>';
+        $chapters_html .= '</button>';
+
+        // Tags button
+        $chapters_html .= '<button class="hs-submit-btn hs-submit-tags-btn" data-book-id="' . $book_id . '">';
+        $chapters_html .= '🏷️ Suggest Tags <span class="pts">+3 pts</span>';
+        $chapters_html .= '</button>';
+
+        // Chapter summary button
+        $chapters_html .= '<button class="hs-submit-btn hs-submit-summary-btn" data-book-id="' . $book_id . '">';
+        $chapters_html .= '📝 Write Chapter Summary <span class="pts">+25 pts</span>';
+        $chapters_html .= '</button>';
     } else {
-        $chapters_html .= '<p><a href="' . wp_login_url(get_permalink()) . '">Log in</a> to submit chapter information.</p>';
+        $chapters_html .= '<p><a href="' . wp_login_url(get_permalink()) . '">Log in</a> to contribute to this book and earn points!</p>';
     }
+
+    $chapters_html .= '</div>'; // contribution-buttons
+    $chapters_html .= '</div>'; // contributions-section
 
     // Add JavaScript for collapsible chapters
     $chapters_html .= '
@@ -118,6 +139,15 @@ function hs_enqueue_chapter_submission_assets() {
         wp_enqueue_script(
             'hs-chapter-submissions',
             $plugin_url . 'js/chapter-submission-modal.js',
+            ['jquery', 'wp-api'],
+            '1.0.0',
+            true
+        );
+
+        // Enqueue contributions modals JavaScript
+        wp_enqueue_script(
+            'hs-contributions-modals',
+            $plugin_url . 'js/contributions-modals.js',
             ['jquery', 'wp-api'],
             '1.0.0',
             true
