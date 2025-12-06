@@ -152,6 +152,16 @@ function hs_enqueue_chapter_submission_assets() {
             '1.0.0',
             true
         );
+
+        // Pass REST API nonce to JavaScript
+        wp_localize_script(
+            'hs-contributions-modals',
+            'wpApiSettings',
+            [
+                'root' => esc_url_raw(rest_url()),
+                'nonce' => wp_create_nonce('wp_rest')
+            ]
+        );
     }
 }
 add_action('wp_enqueue_scripts', 'hs_enqueue_chapter_submission_assets');
