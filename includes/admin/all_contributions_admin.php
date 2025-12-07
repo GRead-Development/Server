@@ -96,6 +96,15 @@ function hs_all_contributions_page() {
 
     <script>
     jQuery(document).ready(function($) {
+        var nonces = {
+            approve_char: '<?php echo wp_create_nonce("approve_char"); ?>',
+            reject_char: '<?php echo wp_create_nonce("reject_char"); ?>',
+            approve_tag: '<?php echo wp_create_nonce("approve_tag"); ?>',
+            reject_tag: '<?php echo wp_create_nonce("reject_tag"); ?>',
+            approve_sum: '<?php echo wp_create_nonce("approve_sum"); ?>',
+            reject_sum: '<?php echo wp_create_nonce("reject_sum"); ?>'
+        };
+
         $('.nav-tab').click(function(e) {
             e.preventDefault();
             var tab = $(this).data('tab');
@@ -105,7 +114,7 @@ function hs_all_contributions_page() {
             $('#' + tab + '-content').show();
         });
 
-        function doAction($btn, action, nonce) {
+        function doAction($btn, action, nonceKey) {
             var id = $btn.data('id');
             var reason = action.includes('reject') ? prompt('Reason (optional):') : null;
             if (action.includes('reject') && reason === null) return;
@@ -115,7 +124,7 @@ function hs_all_contributions_page() {
                 action: action,
                 id: id,
                 reason: reason || '',
-                nonce: '<?php echo wp_create_nonce("' + nonce + '"); ?>'.replace(/'/g, '')
+                nonce: nonces[nonceKey]
             }, function(r) {
                 if (r.success) {
                     $btn.closest('tr').fadeOut();
