@@ -48,6 +48,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/chapter_submissions_display.p
 // Additional contributions systems (characters, tags, summaries)
 require_once plugin_dir_path(__FILE__) . 'includes/character_submissions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/tag_suggestions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/tag_archive.php';
 require_once plugin_dir_path(__FILE__) . 'includes/chapter_summaries.php';
 require_once plugin_dir_path(__FILE__) . 'includes/api/contributions.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/all_contributions_admin.php';

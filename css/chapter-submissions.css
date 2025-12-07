@@ -552,6 +552,48 @@
     background: #c82333;
 }
 
+/**
+ * Book Tags Display
+ */
+.hs-book-tags-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+}
+
+.hs-book-tags-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.hs-book-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.hs-book-tag {
+    display: inline-block;
+    background: #0073aa;
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.hs-book-tag:hover {
+    background: #005a87;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 115, 170, 0.3);
+}
+
 /* Responsive styles */
 @media (max-width: 600px) {
     .hs-chapters-modal-content {
