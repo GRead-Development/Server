@@ -54,6 +54,49 @@ add_action('wp_ajax_hs_reject_sum', function() {
     wp_send_json($r);
 });
 
+// Bulk approval handlers
+add_action('wp_ajax_hs_bulk_approve_char', function() {
+    check_ajax_referer('bulk_approve', 'nonce');
+    if (!current_user_can('manage_options')) wp_die();
+    $ids = isset($_POST['ids']) ? array_map('intval', $_POST['ids']) : [];
+    $admin_id = get_current_user_id();
+    $success = 0;
+    $failed = 0;
+    foreach ($ids as $id) {
+        $r = hs_approve_character_submission($id, $admin_id);
+        if ($r['success']) $success++; else $failed++;
+    }
+    wp_send_json(['success' => true, 'approved' => $success, 'failed' => $failed]);
+});
+
+add_action('wp_ajax_hs_bulk_approve_tag', function() {
+    check_ajax_referer('bulk_approve', 'nonce');
+    if (!current_user_can('manage_options')) wp_die();
+    $ids = isset($_POST['ids']) ? array_map('intval', $_POST['ids']) : [];
+    $admin_id = get_current_user_id();
+    $success = 0;
+    $failed = 0;
+    foreach ($ids as $id) {
+        $r = hs_approve_tag_suggestion($id, $admin_id);
+        if ($r['success']) $success++; else $failed++;
+    }
+    wp_send_json(['success' => true, 'approved' => $success, 'failed' => $failed]);
+});
+
+add_action('wp_ajax_hs_bulk_approve_sum', function() {
+    check_ajax_referer('bulk_approve', 'nonce');
+    if (!current_user_can('manage_options')) wp_die();
+    $ids = isset($_POST['ids']) ? array_map('intval', $_POST['ids']) : [];
+    $admin_id = get_current_user_id();
+    $success = 0;
+    $failed = 0;
+    foreach ($ids as $id) {
+        $r = hs_approve_chapter_summary($id, $admin_id);
+        if ($r['success']) $success++; else $failed++;
+    }
+    wp_send_json(['success' => true, 'approved' => $success, 'failed' => $failed]);
+});
+
 // Main admin page
 function hs_all_contributions_page() {
     global $wpdb;
@@ -76,21 +119,36 @@ function hs_all_contributions_page() {
         </h2>
 
         <div id="chars-content" class="tab-content">
+            <div class="bulk-actions-bar">
+                <button class="button button-primary bulk-approve-btn" data-type="char" disabled>Approve Selected</button>
+                <span class="selection-count"></span>
+            </div>
             <?php hs_render_char_table('pending'); ?>
         </div>
         <div id="tags-content" class="tab-content" style="display:none;">
+            <div class="bulk-actions-bar">
+                <button class="button button-primary bulk-approve-btn" data-type="tag" disabled>Approve Selected</button>
+                <span class="selection-count"></span>
+            </div>
             <?php hs_render_tag_table('pending'); ?>
         </div>
         <div id="sums-content" class="tab-content" style="display:none;">
+            <div class="bulk-actions-bar">
+                <button class="button button-primary bulk-approve-btn" data-type="sum" disabled>Approve Selected</button>
+                <span class="selection-count"></span>
+            </div>
             <?php hs_render_sum_table('pending'); ?>
         </div>
     </div>
 
     <style>
         .tab-content { padding: 20px 0; }
+        .bulk-actions-bar { margin-bottom: 10px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; }
+        .bulk-actions-bar .selection-count { margin-left: 10px; color: #666; }
         .contrib-table { width: 100%; margin-top: 10px; }
         .contrib-table th { background: #f0f0f0; padding: 10px; text-align: left; }
         .contrib-table td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .contrib-table input[type="checkbox"] { margin: 0; }
         .char-list, .sum-text { background: #f9f9f9; padding: 10px; border-radius: 3px; max-height: 150px; overflow-y: auto; }
     </style>
 
@@ -102,7 +160,8 @@ function hs_all_contributions_page() {
             approve_tag: '<?php echo wp_create_nonce("approve_tag"); ?>',
             reject_tag: '<?php echo wp_create_nonce("reject_tag"); ?>',
             approve_sum: '<?php echo wp_create_nonce("approve_sum"); ?>',
-            reject_sum: '<?php echo wp_create_nonce("reject_sum"); ?>'
+            reject_sum: '<?php echo wp_create_nonce("reject_sum"); ?>',
+            bulk_approve: '<?php echo wp_create_nonce("bulk_approve"); ?>'
         };
 
         $('.nav-tab').click(function(e) {
@@ -112,6 +171,69 @@ function hs_all_contributions_page() {
             $(this).addClass('nav-tab-active');
             $('.tab-content').hide();
             $('#' + tab + '-content').show();
+            updateBulkButtons();
+        });
+
+        // Select all checkbox
+        $(document).on('change', '.select-all', function() {
+            var $table = $(this).closest('table');
+            $table.find('.item-checkbox').prop('checked', this.checked);
+            updateBulkButtons();
+        });
+
+        // Individual checkbox
+        $(document).on('change', '.item-checkbox', function() {
+            updateBulkButtons();
+            var $table = $(this).closest('table');
+            var allChecked = $table.find('.item-checkbox:checked').length === $table.find('.item-checkbox').length;
+            $table.find('.select-all').prop('checked', allChecked);
+        });
+
+        function updateBulkButtons() {
+            $('.tab-content:visible').each(function() {
+                var $tab = $(this);
+                var $checked = $tab.find('.item-checkbox:checked');
+                var count = $checked.length;
+                var $btn = $tab.find('.bulk-approve-btn');
+                var $count = $tab.find('.selection-count');
+
+                if (count > 0) {
+                    $btn.prop('disabled', false);
+                    $count.text(count + ' selected');
+                } else {
+                    $btn.prop('disabled', true);
+                    $count.text('');
+                }
+            });
+        }
+
+        // Bulk approve
+        $('.bulk-approve-btn').click(function() {
+            var type = $(this).data('type');
+            var $tab = $(this).closest('.tab-content');
+            var ids = [];
+            $tab.find('.item-checkbox:checked').each(function() {
+                ids.push($(this).val());
+            });
+
+            if (ids.length === 0) return;
+            if (!confirm('Approve ' + ids.length + ' items?')) return;
+
+            $(this).prop('disabled', true).text('Approving...');
+
+            $.post(ajaxurl, {
+                action: 'hs_bulk_approve_' + type,
+                ids: ids,
+                nonce: nonces.bulk_approve
+            }, function(r) {
+                if (r.success) {
+                    alert('Approved ' + r.approved + ' items' + (r.failed > 0 ? ', ' + r.failed + ' failed' : ''));
+                    location.reload();
+                } else {
+                    alert('Error: ' + (r.message || 'Unknown'));
+                    location.reload();
+                }
+            });
         });
 
         function doAction($btn, action, nonceKey) {
@@ -157,6 +279,7 @@ function hs_render_char_table($status) {
     if (empty($subs)) { echo '<p>No character submissions.</p>'; return; }
 
     echo '<table class="contrib-table widefat"><thead><tr>
+        <th><input type="checkbox" class="select-all"></th>
         <th>Book</th><th>Characters</th><th>Submitted By</th><th>Date</th><th>Actions</th>
     </tr></thead><tbody>';
 
@@ -165,7 +288,9 @@ function hs_render_char_table($status) {
         $book = get_post($s->book_id);
         $user = get_userdata($s->user_id);
 
-        echo '<tr><td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
+        echo '<tr>';
+        echo '<td><input type="checkbox" class="item-checkbox" value="'.$s->id.'"></td>';
+        echo '<td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
         echo '<td><div class="char-list">';
         foreach ($chars as $c) {
             echo '<div>• '.esc_html($c['name']);
@@ -194,6 +319,7 @@ function hs_render_tag_table($status) {
     if (empty($subs)) { echo '<p>No tag suggestions.</p>'; return; }
 
     echo '<table class="contrib-table widefat"><thead><tr>
+        <th><input type="checkbox" class="select-all"></th>
         <th>Book</th><th>Tag</th><th>Submitted By</th><th>Date</th><th>Actions</th>
     </tr></thead><tbody>';
 
@@ -201,7 +327,9 @@ function hs_render_tag_table($status) {
         $book = get_post($s->book_id);
         $user = get_userdata($s->user_id);
 
-        echo '<tr><td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
+        echo '<tr>';
+        echo '<td><input type="checkbox" class="item-checkbox" value="'.$s->id.'"></td>';
+        echo '<td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
         echo '<td><span class="tag">'.esc_html($s->tag_name).'</span></td>';
         echo '<td>'.esc_html($user ? $user->display_name : 'Unknown').'</td>';
         echo '<td>'.esc_html(date('Y-m-d H:i', strtotime($s->submitted_at))).'</td>';
@@ -224,6 +352,7 @@ function hs_render_sum_table($status) {
     if (empty($subs)) { echo '<p>No chapter summaries.</p>'; return; }
 
     echo '<table class="contrib-table widefat"><thead><tr>
+        <th><input type="checkbox" class="select-all"></th>
         <th>Book</th><th>Chapter</th><th>Summary</th><th>Submitted By</th><th>Date</th><th>Actions</th>
     </tr></thead><tbody>';
 
@@ -231,7 +360,9 @@ function hs_render_sum_table($status) {
         $book = get_post($s->book_id);
         $user = get_userdata($s->user_id);
 
-        echo '<tr><td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
+        echo '<tr>';
+        echo '<td><input type="checkbox" class="item-checkbox" value="'.$s->id.'"></td>';
+        echo '<td><strong>'.esc_html($book ? $book->post_title : 'Unknown').'</strong></td>';
         echo '<td>Chapter '.$s->chapter_number;
         if ($s->chapter_title) echo '<br><em>'.esc_html($s->chapter_title).'</em>';
         echo '</td>';

@@ -266,3 +266,18 @@ function hs_reject_tag_suggestion($suggestion_id, $admin_user_id, $reason = '') 
 
     return ['success' => true, 'message' => 'Tag suggestion rejected.'];
 }
+
+/**
+ * Get all approved tags for a book
+ */
+function hs_get_book_tags($book_id) {
+    global $wpdb;
+    $tags_table = $wpdb->prefix . 'hs_book_tags';
+
+    $tags = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$tags_table} WHERE book_id = %d ORDER BY tag_name ASC",
+        $book_id
+    ));
+
+    return $tags ?: [];
+}

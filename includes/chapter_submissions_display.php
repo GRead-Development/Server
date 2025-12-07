@@ -66,6 +66,22 @@ function hs_display_chapters_on_book_page($content) {
         $chapters_html .= '</div>';
     }
 
+    // Display approved tags
+    $book_tags = hs_get_book_tags($book_id);
+    if (!empty($book_tags)) {
+        $chapters_html .= '<div class="hs-book-tags-section">';
+        $chapters_html .= '<h3>Tags</h3>';
+        $chapters_html .= '<div class="hs-book-tags">';
+        foreach ($book_tags as $tag) {
+            $tag_url = add_query_arg(['hs_tag' => $tag->tag_slug], home_url('/books/'));
+            $chapters_html .= '<a href="' . esc_url($tag_url) . '" class="hs-book-tag">';
+            $chapters_html .= esc_html($tag->tag_name);
+            $chapters_html .= '</a>';
+        }
+        $chapters_html .= '</div>';
+        $chapters_html .= '</div>';
+    }
+
     // Add all contribution buttons
     $chapters_html .= '<div class="hs-contributions-section">';
     $chapters_html .= '<h3>Contribute to this book</h3>';
