@@ -607,4 +607,74 @@ jQuery(document).ready(function($) {
         });
     });
 
+    // --- Book Cover Fetching from OpenLibrary ---
+    // This fetches book covers client-side (using user's IP) and caches them locally
+    function fetchBookCovers() {
+        $('.hs-book-card').each(function() {
+            const card = $(this);
+            const isbn = card.data('isbn');
+            const bookId = card.data('list-book-id');
+            const coverDiv = card.find('.hs-book-cover');
+
+            // Skip if no ISBN or cover already loaded
+            if (!isbn || isbn === '') {
+                return;
+            }
+
+            // Check if cover already has an image
+            const currentBg = coverDiv.css('background-image');
+            if (currentBg && currentBg !== 'none' && currentBg !== 'url()' && !currentBg.includes('url()')) {
+                return; // Cover already loaded
+            }
+
+            // Add loading class
+            coverDiv.addClass('loading');
+
+            // Fetch from OpenLibrary API (client-side request using user's IP)
+            const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+
+            // Create an image to test if the cover exists
+            const testImg = new Image();
+            testImg.onload = function() {
+                // Cover exists! Display it immediately
+                coverDiv.css('background-image', `url(${openLibraryUrl})`);
+                coverDiv.removeClass('loading');
+
+                // Cache it on the server in the background
+                $.ajax({
+                    url: hs_ajax.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'hs_cache_book_cover',
+                        nonce: hs_ajax.nonce,
+                        book_id: bookId,
+                        cover_url: openLibraryUrl
+                    },
+                    success: function(response) {
+                        if (response.success && response.data.cover_url) {
+                            // Update to use locally cached version
+                            coverDiv.css('background-image', `url(${response.data.cover_url})`);
+                        }
+                    }
+                    // Silent fail - cover is already displayed from OpenLibrary
+                });
+            };
+
+            testImg.onerror = function() {
+                // No cover found, keep default gradient
+                coverDiv.removeClass('loading');
+            };
+
+            testImg.src = openLibraryUrl;
+        });
+    }
+
+    // Run on page load
+    fetchBookCovers();
+
+    // Also run after any AJAX updates that might add new books
+    $(document).on('hs-library-updated', function() {
+        fetchBookCovers();
+    });
+
 }); // <-- This is the one, final closing bracket for jQuery(document).ready()
