@@ -115,6 +115,27 @@ function gread_register_rest_routes() {
         )
     ));
 
+    register_rest_route('gread/v1', '/library/cache-cover', array(
+        'methods' => 'POST',
+        'callback' => 'gread_cache_book_cover',
+        'permission_callback' => 'gread_check_user_permission',
+        'args' => array(
+            'book_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            ),
+            'cover_url' => array(
+                'required' => true,
+                'sanitize_callback' => 'esc_url_raw',
+                'validate_callback' => function($param) {
+                    return filter_var($param, FILTER_VALIDATE_URL) !== false;
+                }
+            )
+        )
+    ));
+
     register_rest_route('gread/v1', '/user/(?P<id>\d+)/stats', array(
         'methods' => 'GET',
         'callback' => 'gread_get_user_stats',
@@ -806,6 +827,71 @@ function gread_resume_book($request) {
     }
 
     return rest_ensure_response($result);
+}
+
+/**
+ * API Callback: Cache Book Cover
+ * POST /gread/v1/library/cache-cover
+ * Downloads and caches a book cover from OpenLibrary to WordPress media library
+ */
+function gread_cache_book_cover($request) {
+    require_once(ABSPATH . 'wp-admin/includes/media.php');
+    require_once(ABSPATH . 'wp-admin/includes/file.php');
+    require_once(ABSPATH . 'wp-admin/includes/image.php');
+
+    $book_id = intval($request['book_id']);
+    $cover_url = esc_url_raw($request['cover_url']);
+
+    // Verify the book exists
+    $book = get_post($book_id);
+    if (!$book || $book->post_type !== 'book') {
+        return new WP_Error('invalid_book', 'Book not found', array('status' => 404));
+    }
+
+    // Check if book already has a cover
+    $existing_thumbnail_id = get_post_thumbnail_id($book_id);
+    if ($existing_thumbnail_id) {
+        $existing_url = wp_get_attachment_url($existing_thumbnail_id);
+        return rest_ensure_response(array(
+            'success' => true,
+            'message' => 'Cover already exists',
+            'cover_url' => $existing_url,
+            'cached' => false
+        ));
+    }
+
+    // Download and cache the cover
+    $tmp = download_url($cover_url);
+
+    if (is_wp_error($tmp)) {
+        return new WP_Error('download_failed', 'Failed to download cover image', array('status' => 500));
+    }
+
+    // Get file extension from URL
+    $file_array = array(
+        'name' => 'book-cover-' . $book_id . '.jpg',
+        'tmp_name' => $tmp
+    );
+
+    // Upload to media library
+    $attachment_id = media_handle_sideload($file_array, $book_id);
+
+    if (is_wp_error($attachment_id)) {
+        @unlink($tmp);
+        return new WP_Error('upload_failed', 'Failed to save cover to media library', array('status' => 500));
+    }
+
+    // Set as featured image
+    set_post_thumbnail($book_id, $attachment_id);
+
+    $cover_local_url = wp_get_attachment_url($attachment_id);
+
+    return rest_ensure_response(array(
+        'success' => true,
+        'message' => 'Cover cached successfully',
+        'cover_url' => $cover_local_url,
+        'cached' => true
+    ));
 }
 
 /**

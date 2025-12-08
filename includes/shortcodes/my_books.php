@@ -188,18 +188,48 @@ function hs_my_books_shortcode($atts)
 	}
         $bar_class = $is_completed ? 'hs-progress-bar golden' : 'hs-progress-bar';
 
-        // HTML for a single book item
-        $book_html = '<li class="' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '" data-reviewed="' . ($has_review ? 'true' : 'false') . '">';
-        $book_html .= '<h3><a style="color: #0056b3;" href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a>';
+	// Get ISBN for OpenLibrary API
+	$isbn = get_post_meta($book_entry->book_id, 'book_isbn', true);
+	if (empty($isbn)) {
+		// Try to get from ISBN table
+		global $wpdb;
+		$isbn_table = $wpdb->prefix . 'hs_book_isbns';
+		$isbn_row = $wpdb->get_row($wpdb->prepare("SELECT isbn FROM {$isbn_table} WHERE post_id = %d AND is_primary = 1 LIMIT 1", $book_entry->book_id));
+		if ($isbn_row) {
+			$isbn = $isbn_row->isbn;
+		}
+	}
 
-	// Add status badge
+	// Get existing cover URL if available
+	$cover_url = get_the_post_thumbnail_url($book_entry->book_id, 'medium');
+	if (!$cover_url) {
+		$cover_url = ''; // Will be replaced by JavaScript
+	}
+
+        // HTML for a single book item - NEW CARD STRUCTURE
+        $book_html = '<div class="hs-book-card ' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '" data-reviewed="' . ($has_review ? 'true' : 'false') . '" data-isbn="' . esc_attr($isbn) . '">';
+
+        // Book cover (opens on hover)
+        $book_html .= '<div class="hs-book-cover" style="background-image: url(' . esc_url($cover_url) . ');">';
+        $book_html .= '<div class="hs-book-cover-overlay">';
+        $book_html .= '<h3 class="hs-book-title">' . esc_html($book->post_title) . '</h3>';
+        $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>';
+
+	// Add status badge on cover
 	if ($is_paused) {
 		$book_html .= '<span class="hs-book-status-badge hs-badge-paused">Paused</span>';
 	} elseif ($is_dnf) {
 		$book_html .= '<span class="hs-book-status-badge hs-badge-dnf">DNF</span>';
+	} elseif ($is_completed) {
+		$book_html .= '<span class="hs-book-status-badge hs-badge-completed">Completed</span>';
 	}
 
-	$book_html .= '</h3>';
+	$book_html .= '</div>'; // .hs-book-cover-overlay
+	$book_html .= '</div>'; // .hs-book-cover
+
+	// Book content (shown when cover opens)
+	$book_html .= '<div class="hs-book-content">';
+	$book_html .= '<h3><a href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a></h3>';
         $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>'; // Display Author
         $book_html .= '<div class="hs-progress-bar-container"><div class="' . esc_attr($bar_class) . '" style="width: ' . esc_attr($progress) . '%;"></div></div>';
         $book_html .= '<span>Progress: ' . esc_html($progress) . '% (' . esc_html($current_page) . ' / ' . esc_html($total_pages) . ' pages)</span>';
@@ -269,7 +299,8 @@ function hs_my_books_shortcode($atts)
             $book_html .= '</div>'; // end .hs-review-section
         }
 
-        $book_html .= '</li>';
+	$book_html .= '</div>'; // end .hs-book-content
+        $book_html .= '</div>'; // end .hs-book-card
 
         // Append to the correct section string based on the filter setting and status
         if ($include_completed) {
@@ -355,7 +386,7 @@ function hs_my_books_shortcode($atts)
         // Combined List
         $output .= '<h2>My Full Library (Sorted by ' . esc_html(ucfirst($sort_by)) . ')</h2>';
         if (!empty($main_list_html)) {
-            $output .= '<ul class="hs-my-book-list hs-combined-list" id="hs-combined-books-list">' . $main_list_html . '</ul>';
+            $output .= '<div class="hs-book-grid hs-combined-list" id="hs-combined-books-list">' . $main_list_html . '</div>';
         } else {
             $output .= '<p>Your library is empty.</p>';
         }
@@ -365,7 +396,7 @@ function hs_my_books_shortcode($atts)
         // "Currently Reading" Section
         $output .= '<div style = "padding: 15px"><h2 style = "margin:0px"> Currently Reading</h2></div>';
         if (!empty($reading_books_html)) {
-            $output .= '<ul class="hs-my-book-list" id="hs-reading-books-list">' . $reading_books_html . '</ul>';
+            $output .= '<div class="hs-book-grid" id="hs-reading-books-list">' . $reading_books_html . '</div>';
         } else {
             $output .= '<p>You are not currently reading any books.</p>';
         }
@@ -374,7 +405,7 @@ function hs_my_books_shortcode($atts)
         if ($paused_count > 0) {
             $output .= '<details class="hs-completed-section">';
             $output .= '<summary><h3>Paused Books (' . $paused_count . ')</h3></summary>';
-            $output .= '<ul class="hs-my-book-list" id="hs-paused-books-list">' . $paused_books_html . '</ul>';
+            $output .= '<div class="hs-book-grid" id="hs-paused-books-list">' . $paused_books_html . '</div>';
             $output .= '</details>';
         }
 
@@ -382,7 +413,7 @@ function hs_my_books_shortcode($atts)
         if ($dnf_count > 0) {
             $output .= '<details class="hs-completed-section">';
             $output .= '<summary><h3>DNF Books (' . $dnf_count . ')</h3></summary>';
-            $output .= '<ul class="hs-my-book-list" id="hs-dnf-books-list">' . $dnf_books_html . '</ul>';
+            $output .= '<div class="hs-book-grid" id="hs-dnf-books-list">' . $dnf_books_html . '</div>';
             $output .= '</details>';
         }
 
@@ -390,7 +421,7 @@ function hs_my_books_shortcode($atts)
         if ($completed_count > 0) {
             $output .= '<details class="hs-completed-section">';
             $output .= '<summary><h3>Completed Books (' . $completed_count . ')</h3></summary>';
-            $output .= '<ul class="hs-my-book-list" id="hs-completed-books-list">' . $completed_books_html . '</ul>';
+            $output .= '<div class="hs-book-grid" id="hs-completed-books-list">' . $completed_books_html . '</div>';
             $output .= '</details>';
         }
     }
