@@ -34,7 +34,7 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-add-book
 
     // Handles removing books from a user's library
-    $('.hs-my-book-list').on('click', '.hs-remove-book', function(e) {
+    $('.hs-book-grid, .hs-my-book-list').on('click', '.hs-remove-book', function(e) {
         e.preventDefault();
 
         if (!confirm('Are you sure that you want to remove this book from your library?')) {
@@ -43,7 +43,7 @@ jQuery(document).ready(function($) {
 
         const button = $(this);
         const book_id = button.data('book-id');
-        const list_item = button.closest('li[data-list-book-id="' + book_id + '"]');
+        const list_item = button.closest('[data-list-book-id="' + book_id + '"]');
 
         $.ajax({
             url: hs_ajax.ajax_url,
@@ -69,13 +69,13 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-remove-book
 
     // Handles actually updating progress
-    $('.hs-progress-form').on('submit', function(e) {
+    $(document).on('submit', '.hs-progress-form', function(e) {
         e.preventDefault();
         const form = $(this);
         const feedbackSpan = form.find('.hs-feedback');
         const progressbar = form.siblings('.hs-progress-bar-container').find('.hs-progress-bar');
         const progresstext = form.siblings('span');
-        const booklist_item = form.closest('.hs-my-book');
+        const booklist_item = form.closest('.hs-book-card, .hs-my-book');
 
 	const new_page_val = parseInt(form.find('input[name="current_page"]').val());
 	const max_pages = parseInt(form.find('input[name="current_page"]').attr('max'));
@@ -154,7 +154,7 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-progress-form
 
 	// Toggle review form
-	$('.hs-my-book-list').on('click', '.hs-toggle-review-form', function(e)
+	$('.hs-book-grid, .hs-my-book-list').on('click', '.hs-toggle-review-form', function(e)
 	{
 		e.preventDefault();
 		$(this).siblings('.hs-review-form').slideToggle();
@@ -162,7 +162,7 @@ jQuery(document).ready(function($) {
 
 
 	// Handles review form submission
-	$('.hs-my-book-list').on('submit', '.hs-review-form', function(e)
+	$('.hs-book-grid, .hs-my-book-list').on('submit', '.hs-review-form', function(e)
 	{
 		e.preventDefault();
 		const form = $(this);
@@ -470,7 +470,7 @@ jQuery(document).ready(function($) {
         const feedback_div = $('#hs-dnf-feedback');
         const book_id = $('#hs-dnf-book-id').val();
         const reason = $('#hs-dnf-reason-textarea').val();
-        const list_item = $('.hs-my-book[data-list-book-id="' + book_id + '"]');
+        const list_item = $('.hs-book-card[data-list-book-id="' + book_id + '"], .hs-my-book[data-list-book-id="' + book_id + '"]');
 
         if (reason.trim() === '') {
             feedback_div.text('Please provide a reason.').css('color', 'red');
@@ -501,14 +501,20 @@ jQuery(document).ready(function($) {
                         // Update the book item status
                         list_item.addClass('hs-book-dnf');
                         list_item.find('.hs-book-status-badge').remove();
-                        list_item.find('h3').after('<span class="hs-book-status-badge hs-badge-dnf">DNF</span>');
+
+                        // Add badge to both cover overlay and content h3
+                        list_item.find('.hs-book-cover-overlay').append('<span class="hs-book-status-badge hs-badge-dnf">DNF</span>');
+                        list_item.find('.hs-book-content h3').after('<span class="hs-book-status-badge hs-badge-dnf">DNF</span>');
+
                         list_item.find('.hs-dnf-book').replaceWith('<span class="hs-dnf-reason-display">DNF Reason: ' + reason + '</span>');
 
-                        // Move to a separate section or mark visually
-                        list_item.fadeOut(400, function() {
-                            // Could move to a separate DNF section if desired
-                            $(this).appendTo('#hs-dnf-books-list').fadeIn(400);
-                        });
+                        // Move to DNF section if it exists
+                        const dnfSection = $('#hs-dnf-books-list');
+                        if (dnfSection.length) {
+                            list_item.fadeOut(400, function() {
+                                $(this).appendTo(dnfSection).fadeIn(400);
+                            });
+                        }
                     }, 2000);
                 } else {
                     feedback_div.text(response.data.message).css('color', 'red');
@@ -527,7 +533,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         const button = $(this);
         const book_id = button.data('book-id');
-        const list_item = button.closest('.hs-my-book');
+        const list_item = button.closest('.hs-book-card, .hs-my-book');
         const feedback_span = list_item.find('.hs-book-action-feedback');
 
         $.ajax({
@@ -549,7 +555,11 @@ jQuery(document).ready(function($) {
                     // Update UI
                     list_item.addClass('hs-book-paused');
                     list_item.find('.hs-book-status-badge').remove();
-                    list_item.find('h3').after('<span class="hs-book-status-badge hs-badge-paused">Paused</span>');
+
+                    // Add badge to both cover overlay and content h3
+                    list_item.find('.hs-book-cover-overlay').append('<span class="hs-book-status-badge hs-badge-paused">Paused</span>');
+                    list_item.find('.hs-book-content h3').after('<span class="hs-book-status-badge hs-badge-paused">Paused</span>');
+
                     button.text('Resume').removeClass('hs-pause-book').addClass('hs-resume-book').prop('disabled', false);
 
                     setTimeout(() => feedback_span.text(''), 2000);
@@ -570,7 +580,7 @@ jQuery(document).ready(function($) {
         e.preventDefault();
         const button = $(this);
         const book_id = button.data('book-id');
-        const list_item = button.closest('.hs-my-book');
+        const list_item = button.closest('.hs-book-card, .hs-my-book');
         const feedback_span = list_item.find('.hs-book-action-feedback');
 
         $.ajax({
