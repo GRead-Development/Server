@@ -200,71 +200,23 @@ function gread_parse_full_name($full_name) {
     return $parts;
 }
 
-function gread_generate_auth_token($user_id) {
-    // Get user data
-    $user = get_userdata($user_id);
-    
-    if (!$user) {
-        return false;
-    }
-    
-    // Check if JWT plugin is available
-    if (!class_exists('Jwt_Auth_Public')) {
-        // Fallback: Try to generate token manually if JWT plugin has helper functions
-        if (function_exists('jwt_auth_generate_token')) {
-            return jwt_auth_generate_token($user);
-        }
-        
-        // Last resort: Generate a custom token and add validation (see below)
-        error_log('JWT plugin not found. Apple auth may not work properly.');
-        return gread_generate_custom_auth_token($user_id);
-    }
-    
-    // Generate JWT token using the plugin
-    // Most JWT plugins for WordPress use this pattern
-    $secret_key = defined('JWT_AUTH_SECRET_KEY') ? JWT_AUTH_SECRET_KEY : wp_salt('auth');
-    $issued_at = time();
-    $not_before = $issued_at;
-    $expire = $issued_at + (60 * 60 * 24 * 7); // Token valid for 7 days
-    
-    $token_data = array(
-        'iss' => get_bloginfo('url'),
-        'iat' => $issued_at,
-        'nbf' => $not_before,
-        'exp' => $expire,
-        'data' => array(
-            'user' => array(
-                'id' => $user->ID,
-            )
-        )
-    );
-    
-    // If you're using the "JWT Authentication for WP REST API" plugin:
-    // It should have a filter to generate tokens
-    $token = apply_filters('jwt_auth_token_before_dispatch', $token_data, $user);
-    
-    // If the filter doesn't work, manually encode JWT
-    if (!is_string($token)) {
-        // Require JWT library (most JWT plugins include this)
-        if (class_exists('Firebase\JWT\JWT')) {
-            $token = \Firebase\JWT\JWT::encode($token_data, $secret_key, 'HS256');
-        } else {
-            // Fallback to custom token
-            return gread_generate_custom_auth_token($user_id);
-        }
-    }
-    
-    return $token;
-}
-
 /**
- * Fallback: Generate custom token if JWT is not available
- * This also requires the validation filter below
+ * Generate authentication token for the app
  */
-function gread_generate_custom_auth_token($user_id) {
+function gread_generate_auth_token($user_id) {
+    // Check if a token generation function already exists in the codebase
+    if (function_exists('wp_generate_application_password')) {
+        // Use WordPress application passwords (WP 5.6+)
+        $token = wp_generate_password(32, false);
+        update_user_meta($user_id, 'gread_auth_token', wp_hash_password($token));
+        return $token;
+    }
+
+    // Fallback: Generate a simple token
     $token = bin2hex(random_bytes(32));
     update_user_meta($user_id, 'gread_auth_token', wp_hash_password($token));
     update_user_meta($user_id, 'gread_token_created', time());
+
     return $token;
 }
 

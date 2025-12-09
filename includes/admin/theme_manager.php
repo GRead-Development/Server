@@ -719,6 +719,17 @@ function hs_generate_buddyx_theme_css() {
         'body.theme-%s footer',
 
         // BuddyPress core
+	'body.theme-%s .hs-book-chapters',
+	'body.theme-%s .hs-book-tag',
+	'body.theme-%s .hs-contributions-section',
+	'body.theme-%s .tags-container',
+	'body.theme-%s .hs-book-modal-content',
+	'body.theme-%s .hs-pending-books-modal-content',
+	'body.theme-%s .hs-chapters-modal-overlay',
+	'body.theme-%s .hs-chapters-modal-content',
+	'body.theme-%s .hs-contribution-buttons',
+	'body.theme-%s .hs-book-tags-section',
+	'body.theme-%s .hs-book-submission-interface',
 	'body.theme-%s .bp-wrap',
 	'body.theme-%s .profile-fields.bp-tables-user',
 	'body.theme-%s #member-primary-nav',
