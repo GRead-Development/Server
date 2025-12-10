@@ -742,7 +742,7 @@
 
 /* Open the book cover on hover */
 .hs-book-card:hover .hs-book-cover {
-    transform: rotateY(-80deg);
+    transform: rotateY(-100deg);
 }
 
 /* Book content (revealed when cover opens) */
@@ -750,7 +750,7 @@
     position: relative;
     width: 100%;
     height: 100%;
-    padding: 15px;
+    padding: 15px 15px 15px 35px;
     background-color: #fff;
     border-radius: 10px;
     overflow-y: auto;

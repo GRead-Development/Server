@@ -231,8 +231,6 @@ function hs_my_books_shortcode($atts)
 
 	// Book content (shown when cover opens)
 	$book_html .= '<div class="hs-book-content">';
-	$book_html .= '<h3><a href="' . esc_url(get_permalink($book->ID)) . '">' . esc_html($book->post_title) . '</a></h3>';
-        $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>'; // Display Author
         $book_html .= '<div class="hs-progress-bar-container"><div class="' . esc_attr($bar_class) . '" style="width: ' . esc_attr($progress) . '%;"></div></div>';
         $book_html .= '<span>Progress: ' . esc_html($progress) . '% (' . esc_html($current_page) . ' / ' . esc_html($total_pages) . ' pages)</span>';
 
