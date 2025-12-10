@@ -458,37 +458,7 @@ function hs_enqueue()
 
 // Add the action
 
-add_action('wp_enqueue_scripts', 'hs_enqueue');
-
-// Ensure filter button gets proper styling
-function hs_activity_filter_button_override() {
-    if (function_exists('bp_is_activity_component') && bp_is_activity_component()) {
-        ?>
-        <style id="hs-filter-button-override">
-            /* Make sure button has proper spacing and display */
-            button.hs-activity-filter-toggle,
-            .hs-activity-filter-wrapper button.hs-activity-filter-toggle {
-                display: block !important;
-                width: 100% !important;
-                max-width: 300px !important;
-                padding: 12px 20px !important;
-                border-radius: 6px !important;
-                font-size: 16px !important;
-                font-weight: 600 !important;
-                cursor: pointer !important;
-                text-align: left !important;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-                min-height: 44px !important;
-            }
-            .hs-activity-filter-toggle .arrow {
-                float: right;
-                font-size: 14px;
-            }
-        </style>
-        <?php
-    }
-}
-add_action('wp_head', 'hs_activity_filter_button_override', 999); 
+add_action('wp_enqueue_scripts', 'hs_enqueue'); 
 
 
 function hs_enqueue_universal_theme_override()
