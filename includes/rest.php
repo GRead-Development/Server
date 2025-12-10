@@ -567,17 +567,91 @@ function gread_get_user_library($request) {
         return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
     }
 
+    // Fixed: Batch-load all book data to prevent N+1 queries
+    // Separate pending books from regular books
+    $pending_book_ids = array();
+    $regular_book_ids = array();
+    $user_books_map = array();
+
+    foreach ($user_books as $user_book) {
+        $user_books_map[$user_book->id] = $user_book;
+        if (!empty($user_book->pending_book_id)) {
+            $pending_book_ids[] = intval($user_book->pending_book_id);
+        } elseif (!empty($user_book->book_id)) {
+            $regular_book_ids[] = intval($user_book->book_id);
+        }
+    }
+
+    // Batch-load pending books
+    $pending_books_map = array();
+    if (!empty($pending_book_ids)) {
+        $pending_ids_placeholder = implode(',', array_fill(0, count($pending_book_ids), '%d'));
+        $pending_books = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $pending_table WHERE id IN ($pending_ids_placeholder)",
+            ...$pending_book_ids
+        ));
+        foreach ($pending_books as $pb) {
+            $pending_books_map[intval($pb->id)] = $pb;
+        }
+    }
+
+    // Batch-load regular books and their metadata
+    $books_map = array();
+    $book_meta_map = array();
+    if (!empty($regular_book_ids)) {
+        // Load posts in one query
+        $posts = get_posts(array(
+            'post_type' => 'book',
+            'post__in' => $regular_book_ids,
+            'posts_per_page' => -1,
+            'post_status' => 'any'
+        ));
+
+        foreach ($posts as $post) {
+            $books_map[intval($post->ID)] = $post;
+        }
+
+        // Batch-load all postmeta in one query
+        $book_ids_placeholder = implode(',', array_fill(0, count($regular_book_ids), '%d'));
+        $postmeta = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, meta_key, meta_value
+             FROM {$wpdb->postmeta}
+             WHERE post_id IN ($book_ids_placeholder)
+             AND meta_key IN ('book_author', 'book_isbn', 'nop')",
+            ...$regular_book_ids
+        ));
+
+        foreach ($postmeta as $meta) {
+            if (!isset($book_meta_map[$meta->post_id])) {
+                $book_meta_map[$meta->post_id] = array();
+            }
+            $book_meta_map[$meta->post_id][$meta->meta_key] = $meta->meta_value;
+        }
+    }
+
+    // Batch-load DNF data
+    $dnf_map = array();
+    if (function_exists('hs_get_dnf_reason') && !empty($regular_book_ids)) {
+        $dnf_table = $wpdb->prefix . 'dnf_books';
+        if ($wpdb->get_var("SHOW TABLES LIKE '$dnf_table'") === $dnf_table) {
+            $dnf_data = $wpdb->get_results($wpdb->prepare(
+                "SELECT * FROM $dnf_table WHERE user_id = %d AND book_id IN ($book_ids_placeholder)",
+                $user_id,
+                ...$regular_book_ids
+            ));
+            foreach ($dnf_data as $dnf) {
+                $dnf_map[intval($dnf->book_id)] = $dnf;
+            }
+        }
+    }
+
+    // Build result using pre-loaded data
     $result = array();
 
     foreach ($user_books as $user_book) {
-        // Check if this is a pending book or regular book
         if (!empty($user_book->pending_book_id)) {
             // This is a pending book
-            $pending_book = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $pending_table WHERE id = %d",
-                $user_book->pending_book_id
-            ));
-
+            $pending_book = $pending_books_map[intval($user_book->pending_book_id)] ?? null;
             if (!$pending_book) continue;
 
             $result[] = array(
@@ -601,36 +675,35 @@ function gread_get_user_library($request) {
             );
         } else {
             // This is a regular book
-            $book_id = $user_book->book_id;
-            $book = get_post($book_id);
-
+            $book_id = intval($user_book->book_id);
+            $book = $books_map[$book_id] ?? null;
             if (!$book) continue;
+
+            $meta = $book_meta_map[$book_id] ?? array();
 
             $book_data = array(
                 'id' => intval($user_book->id),
                 'is_pending' => false,
                 'book' => array(
-                    'id' => intval($book_id),
-                    'title' => get_the_title($book_id),
-                    'author' => get_post_meta($book_id, 'book_author', true),
-                    'isbn' => get_post_meta($book_id, 'book_isbn', true),
-                    'page_count' => intval(get_post_meta($book_id, 'nop', true)),
-                    'content' => get_the_content(null, false, $book)
+                    'id' => $book_id,
+                    'title' => $book->post_title,
+                    'author' => $meta['book_author'] ?? '',
+                    'isbn' => $meta['book_isbn'] ?? '',
+                    'page_count' => intval($meta['nop'] ?? 0),
+                    'content' => $book->post_content
                 ),
                 'current_page' => intval($user_book->current_page),
                 'status' => $user_book->status
             );
 
             // If book is DNF, include the DNF information
-            if ($user_book->status === 'dnf' && function_exists('hs_get_dnf_reason')) {
-                $dnf_data = hs_get_dnf_reason($user_id, $book_id);
-                if ($dnf_data) {
-                    $book_data['dnf'] = array(
-                        'reason' => $dnf_data['reason'],
-                        'pages_read' => intval($dnf_data['pages_read']),
-                        'date_dnf' => $dnf_data['date_dnf']
-                    );
-                }
+            if ($user_book->status === 'dnf' && isset($dnf_map[$book_id])) {
+                $dnf_data = $dnf_map[$book_id];
+                $book_data['dnf'] = array(
+                    'reason' => $dnf_data->reason,
+                    'pages_read' => intval($dnf_data->pages_read),
+                    'date_dnf' => $dnf_data->date_dnf
+                );
             }
 
             $result[] = $book_data;

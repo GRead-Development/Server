@@ -68,29 +68,88 @@ function hs_my_books_shortcode($atts)
         return '<p>You have not added any books to your library. Browse the book database and add what books you are reading to your library. If you cannot find the book you are reading, submit it to the database and get some rewards!</p>';
     }
 
-    // 2. Collect All Book Data into a single array
+    // Fixed: Batch-load all book data to prevent N+1 queries
+    $book_ids = array_map(function($entry) { return intval($entry->book_id); }, $my_book_entries);
+
+    // Batch-load all posts
+    $posts_map = array();
+    if (!empty($book_ids)) {
+        $posts = get_posts(array(
+            'post_type' => 'book',
+            'post__in' => $book_ids,
+            'posts_per_page' => -1,
+            'post_status' => 'any'
+        ));
+        foreach ($posts as $post) {
+            $posts_map[intval($post->ID)] = $post;
+        }
+    }
+
+    // Batch-load all postmeta
+    $book_meta_map = array();
+    if (!empty($book_ids)) {
+        $book_ids_placeholder = implode(',', array_fill(0, count($book_ids), '%d'));
+        $postmeta = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, meta_key, meta_value
+             FROM {$wpdb->postmeta}
+             WHERE post_id IN ($book_ids_placeholder)
+             AND meta_key IN ('nop', 'book_author', 'book_isbn', '_thumbnail_id')",
+            ...$book_ids
+        ));
+        foreach ($postmeta as $meta) {
+            if (!isset($book_meta_map[$meta->post_id])) {
+                $book_meta_map[$meta->post_id] = array();
+            }
+            $book_meta_map[$meta->post_id][$meta->meta_key] = $meta->meta_value;
+        }
+    }
+
+    // Batch-load ISBN data for books without primary ISBN
+    $isbn_map = array();
+    if (!empty($book_ids)) {
+        $isbn_table = $wpdb->prefix . 'hs_book_isbns';
+        if ($wpdb->get_var("SHOW TABLES LIKE '$isbn_table'") === $isbn_table) {
+            $isbns = $wpdb->get_results($wpdb->prepare(
+                "SELECT post_id, isbn FROM $isbn_table WHERE post_id IN ($book_ids_placeholder) AND is_primary = 1",
+                ...$book_ids
+            ));
+            foreach ($isbns as $isbn_row) {
+                $isbn_map[intval($isbn_row->post_id)] = $isbn_row->isbn;
+            }
+        }
+    }
+
+    // 2. Collect All Book Data into a single array using pre-loaded data
     $all_books_data = [];
     foreach ($my_book_entries as $book_entry) {
-        $book = get_post($book_entry->book_id);
+        $book_id = intval($book_entry->book_id);
+        $book = $posts_map[$book_id] ?? null;
         if ($book) {
-            $total_pages = (int)get_post_meta($book_entry->book_id, 'nop', true);
+            $meta = $book_meta_map[$book_id] ?? array();
+            $total_pages = (int)($meta['nop'] ?? 0);
             $current_page = (int)$book_entry->current_page;
             $progress = ($total_pages > 0) ? round(($current_page / $total_pages) * 100) : 0;
             $is_completed = ($total_pages > 0 && $current_page >= $total_pages);
 
-            // Assuming the author is the post author for simplicity; adjust meta key if needed
-            $author = get_post_meta($book_entry->book_id, 'book_author', true);
+            $author = $meta['book_author'] ?? '';
 
 		// Check if the user has reviewed the book
-		$has_review = isset($user_reviews[$book_entry -> book_id]);
-		$user_rating = $has_review ? $user_reviews[$book_entry -> book_id] -> rating : null;
-		$user_review_text = $has_review ? $user_reviews[$book_entry -> book_id] -> review_text : '';
+		$has_review = isset($user_reviews[$book_id]);
+		$user_rating = $has_review ? $user_reviews[$book_id] -> rating : null;
+		$user_review_text = $has_review ? $user_reviews[$book_id] -> review_text : '';
 
 		// Get book status and DNF info
 		$status = isset($book_entry -> status) ? $book_entry -> status : 'reading';
 		$is_dnf = $status === 'dnf';
 		$is_paused = $status === 'paused';
-		$dnf_info = isset($dnf_data[$book_entry -> book_id]) ? $dnf_data[$book_entry -> book_id] : null;
+		$dnf_info = isset($dnf_data[$book_id]) ? $dnf_data[$book_id] : null;
+
+		// Get ISBN (use pre-loaded data)
+		$isbn = $meta['book_isbn'] ?? ($isbn_map[$book_id] ?? '');
+
+		// Get cover URL (use pre-loaded thumbnail ID)
+		$thumbnail_id = $meta['_thumbnail_id'] ?? null;
+		$cover_url = $thumbnail_id ? wp_get_attachment_image_url($thumbnail_id, 'medium') : '';
 
             $all_books_data[] = [
                 'entry' => $book_entry,
@@ -106,7 +165,9 @@ function hs_my_books_shortcode($atts)
 		'status' => $status,
 		'is_dnf' => $is_dnf,
 		'is_paused' => $is_paused,
-		'dnf_info' => $dnf_info
+		'dnf_info' => $dnf_info,
+		'isbn' => $isbn,
+		'cover_url' => $cover_url
             ];
         }
     }
@@ -173,6 +234,8 @@ function hs_my_books_shortcode($atts)
 	$is_dnf = $data['is_dnf'];
 	$is_paused = $data['is_paused'];
 	$dnf_info = $data['dnf_info'];
+	$isbn = $data['isbn'];
+	$cover_url = $data['cover_url'];
 
 	error_log("Book ID {$book_entry -> book_id}: current_page={$current_page}, total_pages={$total_pages}, is_completed=" . ($is_completed ? 'YES' : 'NO'));
 
@@ -188,20 +251,7 @@ function hs_my_books_shortcode($atts)
 	}
         $bar_class = $is_completed ? 'hs-progress-bar golden' : 'hs-progress-bar';
 
-	// Get ISBN for OpenLibrary API
-	$isbn = get_post_meta($book_entry->book_id, 'book_isbn', true);
-	if (empty($isbn)) {
-		// Try to get from ISBN table
-		global $wpdb;
-		$isbn_table = $wpdb->prefix . 'hs_book_isbns';
-		$isbn_row = $wpdb->get_row($wpdb->prepare("SELECT isbn FROM {$isbn_table} WHERE post_id = %d AND is_primary = 1 LIMIT 1", $book_entry->book_id));
-		if ($isbn_row) {
-			$isbn = $isbn_row->isbn;
-		}
-	}
-
-	// Get existing cover URL if available
-	$cover_url = get_the_post_thumbnail_url($book_entry->book_id, 'medium');
+	// Use pre-loaded ISBN and cover URL
 	$has_cover = !empty($cover_url);
 	if (!$cover_url) {
 		$cover_url = ''; // Will be replaced by JavaScript

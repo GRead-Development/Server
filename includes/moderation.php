@@ -253,10 +253,40 @@ function hs_user_reports_admin_page_html() {
         }
     }
 
-    $reports = $wpdb->get_results("SELECT * FROM $table_name WHERE status = 'pending' ORDER BY date_submitted DESC");
+    // Fixed: Add pagination to prevent memory spikes with many reports
+    $per_page = 50;
+    $current_page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
+    $total_reports = $wpdb->get_var("SELECT COUNT(*) FROM $table_name WHERE status = 'pending'");
+    $total_pages = ceil($total_reports / $per_page);
+
+    $reports = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM $table_name WHERE status = 'pending' ORDER BY date_submitted DESC LIMIT %d OFFSET %d",
+        $per_page,
+        $offset
+    ));
     ?>
     <div class="wrap">
         <h1>User Reports (Pending)</h1>
+        <?php if ($total_reports > $per_page): ?>
+            <div class="tablenav top">
+                <div class="tablenav-pages">
+                    <span class="displaying-num"><?php echo esc_html($total_reports); ?> items</span>
+                    <?php
+                    echo paginate_links(array(
+                        'base' => add_query_arg('paged', '%#%'),
+                        'format' => '',
+                        'current' => $current_page,
+                        'total' => $total_pages,
+                        'prev_text' => '&laquo;',
+                        'next_text' => '&raquo;',
+                    ));
+                    ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <table class="wp-list-table widefat fixed striped">
             <thead>
                 <tr>
@@ -288,6 +318,23 @@ function hs_user_reports_admin_page_html() {
                 <?php endif; ?>
             </tbody>
         </table>
+
+        <?php if ($total_reports > $per_page): ?>
+            <div class="tablenav bottom">
+                <div class="tablenav-pages">
+                    <?php
+                    echo paginate_links(array(
+                        'base' => add_query_arg('paged', '%#%'),
+                        'format' => '',
+                        'current' => $current_page,
+                        'total' => $total_pages,
+                        'prev_text' => '&laquo;',
+                        'next_text' => '&raquo;',
+                    ));
+                    ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
     <style>
         .hs-report-status-resolved { color: green; font-weight: bold; }
