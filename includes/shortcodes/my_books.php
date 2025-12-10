@@ -247,7 +247,13 @@ function hs_my_books_shortcode($atts)
         $book_html .= '<div class="hs-progress-bar-container"><div class="' . esc_attr($bar_class) . '" style="width: ' . esc_attr($progress) . '%;"></div></div>';
         $book_html .= '<span>Progress: ' . esc_html($progress) . '% (' . esc_html($current_page) . ' / ' . esc_html($total_pages) . ' pages)</span>';
 
-        $book_html .= '<form class="hs-progress-form">';
+	// Show DNF reason if book is marked DNF
+	if ($is_dnf && $dnf_info) {
+		$book_html .= '<div class="hs-dnf-reason-display">DNF Reason: ' . esc_html($dnf_info->reason) . '</div>';
+	}
+
+	// Progress form (initially hidden)
+        $book_html .= '<form class="hs-progress-form" style="display:none;">';
         $book_html .= '<input type="hidden" name="book_id" value="' . esc_attr($book_entry->book_id) . '">';
         $book_html .= '<label>Update current page number:</label>';
         $book_html .= '<input type="number" name="current_page" min="0" max="' . esc_attr($total_pages) . '" value="' . esc_attr($current_page) . '">';
@@ -255,20 +261,22 @@ function hs_my_books_shortcode($atts)
         $book_html .= '<span class="hs-feedback"></span>';
         $book_html .= '</form>';
 
-	// Show DNF reason if book is marked DNF
-	if ($is_dnf && $dnf_info) {
-		$book_html .= '<div class="hs-dnf-reason-display">DNF Reason: ' . esc_html($dnf_info->reason) . '</div>';
-	}
-
+	// Main action buttons
         $book_html .= '<div class="hs-button-group">';
-        $book_html .= '<button class="hs-button hs-remove-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Remove</button>';
-        $book_html .= '<button class="hs-button hs-notes-button" data-book-id="' . esc_attr($book_entry->book_id) . '" data-book-title="' . esc_attr($book->post_title) . '">View & Manage Notes</button>';
+        $book_html .= '<a href="' . esc_url(get_permalink($book->ID)) . '" class="hs-button hs-view-book">View Book</a>';
+        $book_html .= '<button class="hs-button hs-toggle-progress" data-book-id="' . esc_attr($book_entry->book_id) . '">Update Progress</button>';
+        $book_html .= '<button class="hs-button hs-notes-button" data-book-id="' . esc_attr($book_entry->book_id) . '" data-book-title="' . esc_attr($book->post_title) . '">Notes</button>';
+        $book_html .= '<button class="hs-button hs-toggle-more-menu" data-book-id="' . esc_attr($book_entry->book_id) . '">More...</button>';
+        $book_html .= '</div>';
 
-	// Add Pause/Resume/DNF buttons (not for completed or DNF books)
+	// "More" menu (initially hidden)
+	$book_html .= '<div class="hs-more-menu" style="display:none;">';
+
+	// Add Pause/Resume button (not for completed or DNF books)
 	if ($is_paused) {
-		$book_html .= '<button class="hs-button hs-resume-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Resume</button>';
+		$book_html .= '<button class="hs-button hs-resume-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Resume Reading</button>';
 	} elseif (!$is_completed && !$is_dnf) {
-		$book_html .= '<button class="hs-button hs-pause-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Pause</button>';
+		$book_html .= '<button class="hs-button hs-pause-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Pause Reading</button>';
 	}
 
 	// Add DNF button (not for completed or already DNF books)
@@ -276,8 +284,10 @@ function hs_my_books_shortcode($atts)
 		$book_html .= '<button class="hs-button hs-dnf-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Mark as DNF</button>';
 	}
 
+	$book_html .= '<button class="hs-button hs-remove-book" data-book-id="' . esc_attr($book_entry->book_id) . '">Remove from Library</button>';
+	$book_html .= '</div>';
+
 	$book_html .= '<span class="hs-book-action-feedback"></span>';
-        $book_html .= '</div>';
 
 
 	if ($is_completed) {

@@ -649,6 +649,31 @@
 
 .hs-button-group .hs-button {
     margin-top: 0;
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* More menu styling */
+.hs-more-menu {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+.hs-more-menu .hs-button {
+    display: block;
+    width: 100%;
+    margin-bottom: 5px;
+    text-align: left;
+}
+
+.hs-more-menu .hs-button:last-of-type {
+    margin-bottom: 0;
 }
 
 /* ================================================
@@ -663,15 +688,6 @@
     padding: 20px 0;
     list-style: none;
     margin: 0;
-}
-
-/* Ensure book cards in collapsed sections have same size */
-.hs-completed-section .hs-book-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-}
-
-.hs-completed-section .hs-book-card {
-    height: 350px;
 }
 
 /* Individual book card */
@@ -802,33 +818,59 @@
 
 .hs-book-content .hs-progress-form {
     margin-top: 10px;
+    margin-bottom: 10px;
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
+    padding: 10px;
+    background-color: rgba(0,0,0,0.03);
+    border-radius: 5px;
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
 .hs-book-content .hs-progress-form label {
-    font-size: 11px;
+    font-size: 10px;
+    font-weight: bold;
 }
 
 .hs-book-content .hs-progress-form input[type="number"] {
-    width: 60px;
-    font-size: 12px;
+    width: 70px;
+    font-size: 11px;
+    padding: 4px;
 }
 
 .hs-book-content .hs-progress-form .hs-button {
-    font-size: 11px;
+    font-size: 10px;
     padding: 5px 10px;
+}
+
+.hs-book-content .hs-progress-form .hs-feedback {
+    font-size: 9px;
 }
 
 .hs-book-content .hs-button-group {
-    flex-direction: column;
+    flex-direction: row;
     gap: 5px;
+    flex-wrap: wrap;
 }
 
 .hs-book-content .hs-button-group .hs-button {
-    font-size: 11px;
-    padding: 5px 10px;
+    font-size: 10px;
+    padding: 6px 8px;
+    flex: 1 1 40%;
+    min-width: 70px;
+}
+
+.hs-book-content .hs-more-menu {
+    margin-top: 8px;
+    padding: 8px;
+    font-size: 10px;
+}
+
+.hs-book-content .hs-more-menu .hs-button {
+    font-size: 10px;
+    padding: 5px 8px;
+    margin-bottom: 4px;
 }
 
 /* Circular progress indicator on cover */

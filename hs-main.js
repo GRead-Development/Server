@@ -34,7 +34,7 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-add-book
 
     // Handles removing books from a user's library
-    $('.hs-my-book-list').on('click', '.hs-remove-book', function(e) {
+    $(document).on('click', '.hs-remove-book', function(e) {
         e.preventDefault();
 
         if (!confirm('Are you sure that you want to remove this book from your library?')) {
@@ -43,7 +43,8 @@ jQuery(document).ready(function($) {
 
         const button = $(this);
         const book_id = button.data('book-id');
-        const list_item = button.closest('li[data-list-book-id="' + book_id + '"]');
+        // Support both old list items and new card structure
+        const list_item = button.closest('li[data-list-book-id="' + book_id + '"], .hs-book-card[data-list-book-id="' + book_id + '"]');
 
         $.ajax({
             url: hs_ajax.ajax_url,
@@ -69,7 +70,7 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-remove-book
 
     // Handles actually updating progress
-    $('.hs-progress-form').on('submit', function(e) {
+    $(document).on('submit', '.hs-progress-form', function(e) {
         e.preventDefault();
         const form = $(this);
         const feedbackSpan = form.find('.hs-feedback');
@@ -154,7 +155,7 @@ jQuery(document).ready(function($) {
     }); // <-- End of hs-progress-form
 
 	// Toggle review form
-	$('.hs-my-book-list').on('click', '.hs-toggle-review-form', function(e)
+	$(document).on('click', '.hs-toggle-review-form', function(e)
 	{
 		e.preventDefault();
 		$(this).siblings('.hs-review-form').slideToggle();
@@ -162,12 +163,12 @@ jQuery(document).ready(function($) {
 
 
 	// Handles review form submission
-	$('.hs-my-book-list').on('submit', '.hs-review-form', function(e)
+	$(document).on('submit', '.hs-review-form', function(e)
 	{
 		e.preventDefault();
 		const form = $(this);
 		const feedback_span = form.find('.hs-review-feedback');
-		const list_item = form.closest('.hs-my-book');
+		const list_item = form.closest('.hs-my-book, .hs-book-card');
 		const rating_display = list_item.find('.hs-user-rating-display');
 		const toggle_button = list_item.find('.hs-toggle-review-form');
 
@@ -605,6 +606,44 @@ jQuery(document).ready(function($) {
                 button.text('Resume').prop('disabled', false);
             }
         });
+    });
+
+    // --- Toggle Update Progress Form ---
+    $(document).on('click', '.hs-toggle-progress', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const bookId = button.data('book-id');
+        const card = button.closest('.hs-book-card');
+        const progressForm = card.find('.hs-progress-form');
+
+        // Toggle the form
+        progressForm.slideToggle(200);
+
+        // Update button text
+        if (progressForm.is(':visible')) {
+            button.text('Hide Progress Form');
+        } else {
+            button.text('Update Progress');
+        }
+    });
+
+    // --- Toggle More Menu ---
+    $(document).on('click', '.hs-toggle-more-menu', function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const bookId = button.data('book-id');
+        const card = button.closest('.hs-book-card');
+        const moreMenu = card.find('.hs-more-menu');
+
+        // Toggle the menu
+        moreMenu.slideToggle(200);
+
+        // Update button text
+        if (moreMenu.is(':visible')) {
+            button.text('Less...');
+        } else {
+            button.text('More...');
+        }
     });
 
     // --- Book Cover Fetching from OpenLibrary ---
