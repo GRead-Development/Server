@@ -213,14 +213,3 @@ function hs_gread_landing_page_shortcode($atts) {
     return ob_get_clean();
 }
 add_shortcode('gread_landing_page', 'hs_gread_landing_page_shortcode');
-
-/**
- * Enqueue landing page assets
- */
-function hs_landing_page_enqueue_assets() {
-    global $post;
-    if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'gread_landing_page')) {
-        wp_enqueue_style('hs-style');
-    }
-}
-add_action('wp_enqueue_scripts', 'hs_landing_page_enqueue_assets');
