@@ -45,10 +45,10 @@ function hs_gread_landing_page_shortcode($atts) {
                         <a href="<?php echo esc_url($register_url); ?>" class="gread-btn gread-btn-primary">Get Started Free</a>
                         <a href="<?php echo esc_url($login_url); ?>" class="gread-btn gread-btn-secondary">Sign In</a>
                     </div>
-      //          <?php else: ?>
-//                    <div class="gread-hero-cta">
-  //                      <a href="<?php echo esc_url('my-library/'); ?>" class="gread-btn gread-btn-primary">Go to My Library</a>
-    //                </div>
+                <?php else: ?>
+                    <div class="gread-hero-cta">
+                        <a href="<?php echo esc_url(home_url('/my-library')); ?>" class="gread-btn gread-btn-primary">Go to My Library</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </section>
@@ -213,3 +213,23 @@ function hs_gread_landing_page_shortcode($atts) {
     return ob_get_clean();
 }
 add_shortcode('gread_landing_page', 'hs_gread_landing_page_shortcode');
+
+/**
+ * Custom page template for landing page
+ * This makes the landing page full-width without theme interference
+ */
+function hs_landing_page_template($template) {
+    global $post;
+
+    // Check if this page has the landing page shortcode
+    if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'gread_landing_page')) {
+        $custom_template = plugin_dir_path(dirname(__FILE__)) . '../templates/landing-page-template.php';
+
+        if (file_exists($custom_template)) {
+            return $custom_template;
+        }
+    }
+
+    return $template;
+}
+add_filter('template_include', 'hs_landing_page_template', 99);
