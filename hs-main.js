@@ -747,27 +747,17 @@ jQuery(document).ready(function($) {
 
     // --- Activity Feed Filter Menu ---
     function initActivityFilterMenu() {
-        // Try multiple selectors for BuddyPress filter tabs
-        let filterTabs = $('#buddypress .activity-type-navs');
-        if (filterTabs.length === 0) {
-            filterTabs = $('#buddypress .dir-navs');
-        }
-        if (filterTabs.length === 0) {
-            filterTabs = $('.buddypress-wrap .bp-navs');
-        }
-        if (filterTabs.length === 0) {
-            filterTabs = $('#buddypress .main-navs');
-        }
-
-        if (filterTabs.length === 0) {
-            console.log('No activity filter tabs found');
+        // Don't create duplicate filter menus
+        if ($('.hs-activity-filter-wrapper').length > 0) {
             return;
         }
 
-        // Don't create duplicate filter menus
-        if ($('.hs-activity-filter-wrapper').length > 0) return;
+        // Find the activity navigation (BuddyX theme uses these classes)
+        const filterTabs = $('.activity-type-navs');
 
-        console.log('Creating activity filter menu');
+        if (filterTabs.length === 0) {
+            return;
+        }
 
         // Create wrapper for our custom filter menu
         const filterWrapper = $('<div class="hs-activity-filter-wrapper"></div>');
@@ -788,7 +778,11 @@ jQuery(document).ready(function($) {
         filterWrapper.append(filterContent);
 
         // Insert before the activity stream
-        filterTabs.before(filterWrapper);
+        if ($('#activity-stream').length > 0) {
+            $('#activity-stream').before(filterWrapper);
+        } else {
+            filterTabs.before(filterWrapper);
+        }
 
         // Toggle functionality
         toggleButton.on('click', function() {
@@ -797,12 +791,17 @@ jQuery(document).ready(function($) {
         });
     }
 
-    // Run on activity pages
+    // Run on activity pages with delay to ensure DOM is ready
+    setTimeout(function() {
+        initActivityFilterMenu();
+    }, 500);
+
+    // Also try immediately
     initActivityFilterMenu();
 
     // Re-run after AJAX updates (BuddyPress uses AJAX for activity filtering)
     $(document).ajaxComplete(function() {
-        initActivityFilterMenu();
+        setTimeout(initActivityFilterMenu, 100);
     });
 
 }); // <-- This is the one, final closing bracket for jQuery(document).ready()
