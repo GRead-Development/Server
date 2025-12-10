@@ -1210,28 +1210,34 @@
 
 /* Collapsible Filter Menu */
 .hs-activity-filter-wrapper {
-    margin-bottom: 20px;
+    margin: 20px 0 !important;
+    padding: 0 !important;
+    clear: both;
 }
 
 .hs-activity-filter-toggle {
-    background-color: #0073aa;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    max-width: 300px;
-    transition: background-color 0.2s;
+    background-color: #0073aa !important;
+    color: #fff !important;
+    padding: 12px 20px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    max-width: 300px !important;
+    transition: background-color 0.2s !important;
+    margin: 0 !important;
+    text-align: left !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
 .hs-activity-filter-toggle:hover {
-    background-color: #005a87;
+    background-color: #005a87 !important;
+    text-decoration: none !important;
 }
 
 .hs-activity-filter-toggle .arrow {
@@ -1244,16 +1250,17 @@
 }
 
 .hs-activity-filter-content {
-    display: none;
-    margin-top: 10px;
-    padding: 15px;
-    background-color: #f9f9f9;
-    border-radius: 6px;
-    border: 1px solid #ddd;
+    display: none !important;
+    margin-top: 10px !important;
+    padding: 15px !important;
+    background-color: #f9f9f9 !important;
+    border-radius: 6px !important;
+    border: 1px solid #ddd !important;
+    max-width: 600px !important;
 }
 
 .hs-activity-filter-content.show {
-    display: block;
+    display: block !important;
 }
 
 /* Hide original filter tabs and move them into our menu */

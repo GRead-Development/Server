@@ -749,15 +749,21 @@ jQuery(document).ready(function($) {
     function initActivityFilterMenu() {
         // Don't create duplicate filter menus
         if ($('.hs-activity-filter-wrapper').length > 0) {
+            console.log('Filter wrapper already exists');
             return;
         }
 
         // Find the activity navigation (BuddyX theme uses these classes)
         const filterTabs = $('.activity-type-navs');
 
+        console.log('Filter tabs found:', filterTabs.length);
+
         if (filterTabs.length === 0) {
+            console.log('No filter tabs found');
             return;
         }
+
+        console.log('Creating filter menu...');
 
         // Create wrapper for our custom filter menu
         const filterWrapper = $('<div class="hs-activity-filter-wrapper"></div>');
@@ -780,12 +786,18 @@ jQuery(document).ready(function($) {
         // Insert before the activity stream
         if ($('#activity-stream').length > 0) {
             $('#activity-stream').before(filterWrapper);
+            console.log('Inserted before activity-stream');
         } else {
             filterTabs.before(filterWrapper);
+            console.log('Inserted before filter tabs');
         }
 
+        console.log('Filter menu created successfully');
+
         // Toggle functionality
-        toggleButton.on('click', function() {
+        toggleButton.on('click', function(e) {
+            e.preventDefault();
+            console.log('Toggle button clicked');
             $(this).toggleClass('active');
             filterContent.toggleClass('show');
         });

@@ -442,9 +442,9 @@ function hs_enqueue()
     }
 
     if ($should_load) {
-        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css', [], '1.3');
+        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css', [], '1.4');
 
-        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.3', true);
+        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.4', true);
 
         // Pass the data to JS
         wp_localize_script('hs-main-js', 'hs_ajax', [
