@@ -129,16 +129,37 @@ function hs_build_index_callback()
     $table_name = HS_SEARCH_TABLE;
     $wpdb->query("TRUNCATE TABLE $table_name");
 
-    $book_query = new WP_Query(['post_type' => 'book', 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids']);
+    // Fixed: Process books in batches to prevent memory spikes
+    $batch_size = 100;
+    $paged = 1;
+    $total_indexed = 0;
 
-    if ($book_query->have_posts()) {
-        foreach ($book_query->posts as $book_id) {
-            hs_search_add_to_index($book_id);
+    do {
+        $book_query = new WP_Query([
+            'post_type' => 'book',
+            'post_status' => 'publish',
+            'posts_per_page' => $batch_size,
+            'paged' => $paged,
+            'fields' => 'ids',
+            'no_found_rows' => true, // Optimize by skipping count query
+            'update_post_meta_cache' => false, // Skip meta cache
+            'update_post_term_cache' => false, // Skip term cache
+        ]);
+
+        if ($book_query->have_posts()) {
+            foreach ($book_query->posts as $book_id) {
+                hs_search_add_to_index($book_id);
+                $total_indexed++;
+            }
         }
-    }
+
+        $paged++;
+        wp_reset_postdata();
+
+    } while ($book_query->have_posts());
 
     delete_option('hs_search_needs_indexing');
-    wp_send_json_success('The search index was built successfully. ' . count($book_query->posts) . ' books have been indexed.');
+    wp_send_json_success('The search index was built successfully. ' . $total_indexed . ' books have been indexed.');
 }
 add_action('wp_ajax_hs_build_index', 'hs_build_index_callback');
 
