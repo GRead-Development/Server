@@ -794,6 +794,18 @@ jQuery(document).ready(function($) {
 
         console.log('Filter menu created successfully');
 
+        // Debug: Check if button is actually in the DOM and visible
+        setTimeout(function() {
+            const buttonCheck = $('.hs-activity-filter-toggle');
+            console.log('Button exists in DOM:', buttonCheck.length);
+            if (buttonCheck.length > 0) {
+                console.log('Button position:', buttonCheck.offset());
+                console.log('Button is visible:', buttonCheck.is(':visible'));
+                console.log('Button display style:', buttonCheck.css('display'));
+                console.log('Button parent:', buttonCheck.parent().attr('class'));
+            }
+        }, 100);
+
         // Toggle functionality
         toggleButton.on('click', function(e) {
             e.preventDefault();

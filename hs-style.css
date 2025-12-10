@@ -1212,7 +1212,12 @@
 .hs-activity-filter-wrapper {
     margin: 20px 0 !important;
     padding: 0 !important;
-    clear: both;
+    clear: both !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
 }
 
 .hs-activity-filter-toggle {
@@ -1224,25 +1229,30 @@
     cursor: pointer !important;
     font-size: 16px !important;
     font-weight: 600 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+    display: block !important;
     width: 100% !important;
     max-width: 300px !important;
     transition: background-color 0.2s !important;
     margin: 0 !important;
     text-align: left !important;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 101 !important;
+    height: auto !important;
+    line-height: 1.5 !important;
+}
+
+.hs-activity-filter-toggle .arrow {
+    float: right;
+    transition: transform 0.3s;
+    font-size: 12px;
 }
 
 .hs-activity-filter-toggle:hover {
     background-color: #005a87 !important;
     text-decoration: none !important;
-}
-
-.hs-activity-filter-toggle .arrow {
-    transition: transform 0.3s;
-    font-size: 12px;
 }
 
 .hs-activity-filter-toggle.active .arrow {
