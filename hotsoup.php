@@ -424,7 +424,16 @@ function hs_enqueue()
     $should_load = false;
 
     // Load on pages with specific shortcodes
-    if (is_a($post, 'WP_Post') && (has_shortcode($post->post_content, 'my_books') || has_shortcode($post->post_content, 'book_directory') || has_shortcode($post->post_content, 'hs_book_search'))) {
+    if (is_a($post, 'WP_Post') && (
+        has_shortcode($post->post_content, 'my_books') ||
+        has_shortcode($post->post_content, 'book_directory') ||
+        has_shortcode($post->post_content, 'hs_book_search') ||
+        has_shortcode($post->post_content, 'gread_landing_page') ||
+        has_shortcode($post->post_content, 'recently_added_books') ||
+        has_shortcode($post->post_content, 'being_read_books') ||
+        has_shortcode($post->post_content, 'top_rated_books') ||
+        has_shortcode($post->post_content, 'most_read_books')
+    )) {
         $should_load = true;
     }
 

@@ -36,7 +36,8 @@ function hs_render_shelf_book_card($book_id) {
 
     $cover_class = $has_cover ? 'hs-book-cover' : 'hs-book-cover no-cover';
 
-    $html = '<div class="hs-shelf-book-card" data-book-id="' . esc_attr($book_id) . '" data-isbn="' . esc_attr($isbn) . '">';
+    // Use hs-book-card class so JavaScript cover fetching works
+    $html = '<div class="hs-book-card hs-shelf-book-card" data-isbn="' . esc_attr($isbn) . '" data-list-book-id="' . esc_attr($book_id) . '">';
     $html .= '<a href="' . esc_url(get_permalink($book_id)) . '" class="hs-shelf-book-link">';
     $html .= '<div class="' . esc_attr($cover_class) . '" style="background-image: url(' . esc_url($cover_url) . ');">';
     $html .= '<div class="hs-book-cover-overlay">';
@@ -45,7 +46,7 @@ function hs_render_shelf_book_card($book_id) {
     $html .= '</div>'; // .hs-book-cover-overlay
     $html .= '</div>'; // .hs-book-cover
     $html .= '</a>';
-    $html .= '</div>'; // .hs-shelf-book-card
+    $html .= '</div>'; // .hs-book-card .hs-shelf-book-card
 
     return $html;
 }
@@ -277,19 +278,3 @@ function hs_most_read_books_shortcode($atts) {
     return ob_get_clean();
 }
 add_shortcode('most_read_books', 'hs_most_read_books_shortcode');
-
-/**
- * Enqueue CSS for book shelves
- */
-function hs_book_shelves_enqueue_assets() {
-    global $post;
-    if (is_a($post, 'WP_Post') && (
-        has_shortcode($post->post_content, 'recently_added_books') ||
-        has_shortcode($post->post_content, 'being_read_books') ||
-        has_shortcode($post->post_content, 'top_rated_books') ||
-        has_shortcode($post->post_content, 'most_read_books')
-    )) {
-        wp_enqueue_style('hs-style');
-    }
-}
-add_action('wp_enqueue_scripts', 'hs_book_shelves_enqueue_assets');
