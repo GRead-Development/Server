@@ -665,6 +665,15 @@
     margin: 0;
 }
 
+/* Ensure book cards in collapsed sections have same size */
+.hs-completed-section .hs-book-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.hs-completed-section .hs-book-card {
+    height: 350px;
+}
+
 /* Individual book card */
 .hs-book-card {
     position: relative;
@@ -720,6 +729,7 @@
     align-items: center;
     justify-content: flex-end;
     padding: 20px;
+    padding-top: 70px;
     color: #fff;
     text-align: center;
     position: relative;
@@ -752,7 +762,8 @@
     width: 100%;
     height: 100%;
     padding: 15px 15px 15px 35px;
-    background-color: #fff;
+    background-color: #f5e6d3;
+    background-image: linear-gradient(to right, rgba(0,0,0,0.05) 0%, transparent 10%);
     border-radius: 10px;
     overflow-y: auto;
     z-index: 1;
