@@ -202,6 +202,7 @@ function hs_my_books_shortcode($atts)
 
 	// Get existing cover URL if available
 	$cover_url = get_the_post_thumbnail_url($book_entry->book_id, 'medium');
+	$has_cover = !empty($cover_url);
 	if (!$cover_url) {
 		$cover_url = ''; // Will be replaced by JavaScript
 	}
@@ -210,7 +211,8 @@ function hs_my_books_shortcode($atts)
         $book_html = '<div class="hs-book-card ' . esc_attr($li_class) . '" data-list-book-id="' . esc_attr($book_entry->book_id) . '" data-reviewed="' . ($has_review ? 'true' : 'false') . '" data-isbn="' . esc_attr($isbn) . '">';
 
         // Book cover (opens on hover)
-        $book_html .= '<div class="hs-book-cover" style="background-image: url(' . esc_url($cover_url) . ');">';
+        $cover_class = $has_cover ? 'hs-book-cover' : 'hs-book-cover no-cover';
+        $book_html .= '<div class="' . esc_attr($cover_class) . '" style="background-image: url(' . esc_url($cover_url) . ');">';
         $book_html .= '<div class="hs-book-cover-overlay">';
         $book_html .= '<h3 class="hs-book-title">' . esc_html($book->post_title) . '</h3>';
         $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>';

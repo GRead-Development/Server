@@ -832,14 +832,12 @@
 }
 
 /* Placeholder for books without covers */
-.hs-book-cover[style*="background-image: url();"],
-.hs-book-cover[style="background-image: url();"] {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+.hs-book-cover.no-cover {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
 }
 
 /* Lighter overlay for books without covers */
-.hs-book-cover[style*="background-image: url();"] .hs-book-cover-overlay,
-.hs-book-cover[style="background-image: url();"] .hs-book-cover-overlay {
+.hs-book-cover.no-cover .hs-book-cover-overlay {
     background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
 }
 
