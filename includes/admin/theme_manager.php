@@ -719,6 +719,7 @@ function hs_generate_buddyx_theme_css() {
         'body.theme-%s footer',
 
         // BuddyPress core
+	'body.theme-%s .hs-book-content',
 	'body.theme-%s .hs-book-chapters',
 	'body.theme-%s .hs-book-tag',
 	'body.theme-%s .hs-contributions-section',
