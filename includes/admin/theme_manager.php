@@ -30,9 +30,7 @@ function hs_theme_settings_nav()
 		]);
 	}
 }
-// Use bp_setup_nav for backwards compatibility, bp_init as fallback for newer BuddyPress
-add_action('bp_setup_nav', 'hs_theme_settings_nav', 100);
-add_action('bp_init', 'hs_theme_settings_nav', 100);
+add_action('bp_setup_nav', 'hs_theme_settings_nav');
 
 
 // Render the content for the themes tab
