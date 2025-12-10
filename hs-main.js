@@ -747,9 +747,27 @@ jQuery(document).ready(function($) {
 
     // --- Activity Feed Filter Menu ---
     function initActivityFilterMenu() {
-        // Check if we're on an activity page with filter tabs
-        const filterTabs = $('#buddypress .activity-type-tabs');
-        if (filterTabs.length === 0) return;
+        // Try multiple selectors for BuddyPress filter tabs
+        let filterTabs = $('#buddypress .activity-type-navs');
+        if (filterTabs.length === 0) {
+            filterTabs = $('#buddypress .dir-navs');
+        }
+        if (filterTabs.length === 0) {
+            filterTabs = $('.buddypress-wrap .bp-navs');
+        }
+        if (filterTabs.length === 0) {
+            filterTabs = $('#buddypress .main-navs');
+        }
+
+        if (filterTabs.length === 0) {
+            console.log('No activity filter tabs found');
+            return;
+        }
+
+        // Don't create duplicate filter menus
+        if ($('.hs-activity-filter-wrapper').length > 0) return;
+
+        console.log('Creating activity filter menu');
 
         // Create wrapper for our custom filter menu
         const filterWrapper = $('<div class="hs-activity-filter-wrapper"></div>');
@@ -784,10 +802,7 @@ jQuery(document).ready(function($) {
 
     // Re-run after AJAX updates (BuddyPress uses AJAX for activity filtering)
     $(document).ajaxComplete(function() {
-        // Only re-init if the filter menu doesn't exist
-        if ($('.hs-activity-filter-wrapper').length === 0) {
-            initActivityFilterMenu();
-        }
+        initActivityFilterMenu();
     });
 
 }); // <-- This is the one, final closing bracket for jQuery(document).ready()

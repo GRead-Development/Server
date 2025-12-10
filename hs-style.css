@@ -1257,7 +1257,10 @@
 }
 
 /* Hide original filter tabs and move them into our menu */
-#buddypress .activity-type-tabs {
+#buddypress .activity-type-navs,
+#buddypress .dir-navs,
+.buddypress-wrap .bp-navs.main-navs,
+#buddypress .main-navs {
     display: none !important;
 }
 
