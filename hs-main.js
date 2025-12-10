@@ -745,4 +745,49 @@ jQuery(document).ready(function($) {
     // Run on book pages
     fetchBookPageCover();
 
+    // --- Activity Feed Filter Menu ---
+    function initActivityFilterMenu() {
+        // Check if we're on an activity page with filter tabs
+        const filterTabs = $('#buddypress .activity-type-tabs');
+        if (filterTabs.length === 0) return;
+
+        // Create wrapper for our custom filter menu
+        const filterWrapper = $('<div class="hs-activity-filter-wrapper"></div>');
+
+        // Create toggle button
+        const toggleButton = $('<button class="hs-activity-filter-toggle">Filter Posts <span class="arrow">▼</span></button>');
+
+        // Create content container
+        const filterContent = $('<div class="hs-activity-filter-content"></div>');
+
+        // Clone the filter tabs into our content container
+        const filterList = filterTabs.clone();
+        filterList.show(); // Make sure it's visible in our container
+        filterContent.append(filterList);
+
+        // Assemble the wrapper
+        filterWrapper.append(toggleButton);
+        filterWrapper.append(filterContent);
+
+        // Insert before the activity stream
+        filterTabs.before(filterWrapper);
+
+        // Toggle functionality
+        toggleButton.on('click', function() {
+            $(this).toggleClass('active');
+            filterContent.toggleClass('show');
+        });
+    }
+
+    // Run on activity pages
+    initActivityFilterMenu();
+
+    // Re-run after AJAX updates (BuddyPress uses AJAX for activity filtering)
+    $(document).ajaxComplete(function() {
+        // Only re-init if the filter menu doesn't exist
+        if ($('.hs-activity-filter-wrapper').length === 0) {
+            initActivityFilterMenu();
+        }
+    });
+
 }); // <-- This is the one, final closing bracket for jQuery(document).ready()

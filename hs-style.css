@@ -1203,3 +1203,256 @@
         height: 300px;
     }
 }
+
+/* ================================================
+ * Activity Feed Improvements
+ * ================================================ */
+
+/* Collapsible Filter Menu */
+.hs-activity-filter-wrapper {
+    margin-bottom: 20px;
+}
+
+.hs-activity-filter-toggle {
+    background-color: #0073aa;
+    color: #fff;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 300px;
+    transition: background-color 0.2s;
+}
+
+.hs-activity-filter-toggle:hover {
+    background-color: #005a87;
+}
+
+.hs-activity-filter-toggle .arrow {
+    transition: transform 0.3s;
+    font-size: 12px;
+}
+
+.hs-activity-filter-toggle.active .arrow {
+    transform: rotate(180deg);
+}
+
+.hs-activity-filter-content {
+    display: none;
+    margin-top: 10px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+.hs-activity-filter-content.show {
+    display: block;
+}
+
+/* Hide original filter tabs and move them into our menu */
+#buddypress .activity-type-tabs {
+    display: none !important;
+}
+
+/* Style filters inside our collapsible menu */
+.hs-activity-filter-content ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.hs-activity-filter-content ul li {
+    margin: 0;
+}
+
+.hs-activity-filter-content ul li a {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #fff;
+    color: #0073aa;
+    border: 2px solid #0073aa;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.hs-activity-filter-content ul li a:hover {
+    background-color: #0073aa;
+    color: #fff;
+}
+
+.hs-activity-filter-content ul li.selected a,
+.hs-activity-filter-content ul li.current a {
+    background-color: #0073aa;
+    color: #fff;
+}
+
+/* Cleaner Activity Cards */
+#buddypress .activity-list > li {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+#buddypress .activity-list > li:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+
+/* Activity Header */
+#buddypress .activity-header {
+    margin-bottom: 15px;
+}
+
+#buddypress .activity-header p {
+    font-size: 14px;
+    color: #666;
+    margin: 0;
+    line-height: 1.6;
+}
+
+#buddypress .activity-header p a {
+    color: #0073aa;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+#buddypress .activity-header p a:hover {
+    text-decoration: underline;
+}
+
+/* Activity Avatar */
+#buddypress .activity-list .activity-avatar {
+    float: left;
+    margin-right: 15px;
+}
+
+#buddypress .activity-list .activity-avatar img {
+    border-radius: 50%;
+    border: 3px solid #f0f0f0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Activity Content */
+#buddypress .activity-content {
+    clear: both;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+}
+
+#buddypress .activity-content p {
+    margin: 0;
+}
+
+#buddypress .activity-content a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+#buddypress .activity-content a:hover {
+    text-decoration: underline;
+}
+
+/* Activity Inner Content (for activity updates with quoted content) */
+#buddypress .activity-inner {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #fff;
+    border-left: 3px solid #0073aa;
+    border-radius: 4px;
+}
+
+/* Activity Meta */
+#buddypress .activity-meta {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 13px;
+}
+
+#buddypress .activity-meta a {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+#buddypress .activity-meta a:hover {
+    color: #0073aa;
+}
+
+/* Activity Comments */
+#buddypress .activity-comments {
+    margin-top: 15px;
+    padding-left: 60px;
+}
+
+#buddypress .activity-comments .acomment-avatar img {
+    border-radius: 50%;
+    border: 2px solid #f0f0f0;
+}
+
+#buddypress .activity-comments .acomment-content {
+    background-color: #f5f5f5;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+/* Load More Button */
+#buddypress .load-more a {
+    display: inline-block;
+    padding: 12px 24px;
+    background-color: #0073aa;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+#buddypress .load-more a:hover {
+    background-color: #005a87;
+}
+
+/* Responsive activity feed */
+@media (max-width: 768px) {
+    #buddypress .activity-list > li {
+        padding: 15px;
+    }
+
+    #buddypress .activity-comments {
+        padding-left: 30px;
+    }
+
+    .hs-activity-filter-content ul {
+        flex-direction: column;
+    }
+
+    .hs-activity-filter-content ul li a {
+        display: block;
+        text-align: center;
+    }
+}
