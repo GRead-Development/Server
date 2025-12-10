@@ -8,4 +8,5 @@ function hs_hide_invitations_tab()
 		bp_core_remove_nav_item('invitations');
 	}
 }
-add_action('bp_setup_nav', 'hs_hide_invitations_tab');
+add_action('bp_setup_nav', 'hs_hide_invitations_tab', 999);
+add_action('bp_init', 'hs_hide_invitations_tab', 999);
