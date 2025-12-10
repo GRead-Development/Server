@@ -214,6 +214,19 @@ function hs_my_books_shortcode($atts)
         $cover_class = $has_cover ? 'hs-book-cover' : 'hs-book-cover no-cover';
         $book_html .= '<div class="' . esc_attr($cover_class) . '" style="background-image: url(' . esc_url($cover_url) . ');">';
         $book_html .= '<div class="hs-book-cover-overlay">';
+
+        // Circular progress indicator
+        $radius = 21;
+        $circumference = 2 * 3.14159 * $radius;
+        $offset = $circumference * (1 - ($progress / 100));
+        $book_html .= '<div class="hs-book-progress-circle">';
+        $book_html .= '<svg width="50" height="50">';
+        $book_html .= '<circle class="progress-bg" cx="25" cy="25" r="' . $radius . '"></circle>';
+        $book_html .= '<circle class="progress-bar" cx="25" cy="25" r="' . $radius . '" stroke-dasharray="' . esc_attr($circumference) . '" stroke-dashoffset="' . esc_attr($offset) . '"></circle>';
+        $book_html .= '</svg>';
+        $book_html .= '<div class="progress-text">' . esc_html($progress) . '%</div>';
+        $book_html .= '</div>';
+
         $book_html .= '<h3 class="hs-book-title">' . esc_html($book->post_title) . '</h3>';
         $book_html .= '<p class="hs-book-author">By: ' . esc_html($author) . '</p>';
 

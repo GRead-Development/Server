@@ -693,7 +693,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    border-radius: 10px;
+    border-radius: 10px 0 0 10px;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.5s ease;
@@ -714,7 +714,7 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.7));
-    border-radius: 10px;
+    border-radius: 10px 0 0 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -722,6 +722,7 @@
     padding: 20px;
     color: #fff;
     text-align: center;
+    position: relative;
 }
 
 .hs-book-cover-overlay .hs-book-title {
@@ -729,15 +730,15 @@
     font-weight: bold;
     margin: 0 0 5px 0;
     color: #fff;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    text-shadow: 2px 2px 8px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8);
 }
 
 .hs-book-cover-overlay .hs-book-author {
     font-size: 13px;
     margin: 0;
     color: #fff;
-    opacity: 0.9;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+    opacity: 0.95;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.8);
 }
 
 /* Open the book cover on hover */
@@ -819,10 +820,49 @@
     padding: 5px 10px;
 }
 
-/* Status badges on cover */
-.hs-book-cover-overlay .hs-book-status-badge {
+/* Circular progress indicator on cover */
+.hs-book-progress-circle {
     position: absolute;
     top: 10px;
+    right: 10px;
+    width: 50px;
+    height: 50px;
+}
+
+.hs-book-progress-circle svg {
+    transform: rotate(-90deg);
+}
+
+.hs-book-progress-circle circle {
+    fill: none;
+    stroke-width: 4;
+}
+
+.hs-book-progress-circle .progress-bg {
+    stroke: rgba(255, 255, 255, 0.3);
+}
+
+.hs-book-progress-circle .progress-bar {
+    stroke: #FFD700;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s ease;
+}
+
+.hs-book-progress-circle .progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+}
+
+/* Status badges on cover - moved down to avoid overlap */
+.hs-book-cover-overlay .hs-book-status-badge {
+    position: absolute;
+    top: 70px;
     right: 10px;
 }
 
