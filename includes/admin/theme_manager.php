@@ -876,7 +876,7 @@ function hs_generate_buddyx_theme_css() {
             // simple heuristics: global/container selectors set background/text; link selectors set color; button selectors set bg
             if ( false !== strpos( $selector, ' a:hover' ) ) {
                 $out .= $selector . " { color: {$link_hover} !important; }\n";
-            } elseif ( false !== strpos( $selector, '.hs-button' ) || false !== strpos( $selector, '.button' ) || false !== strpos( $selector, 'input[type=\"submit\"]' ) || false !== strpos( $selector, '.bp-primary-action' ) || false !== strpos( $selector, '.btn' ) ) {
+            } elseif ( false !== strpos( $selector, '.hs-button' ) || false !== strpos( $selector, '.button' ) || false !== strpos( $selector, 'input[type=\"submit\"]' ) || false !== strpos( $selector, '.bp-primary-action' ) || false !== strpos( $selector, '.btn' ) || false !== strpos( $selector, '.hs-activity-filter-toggle' ) ) {
                 $out .= $selector . " { background-color: {$button_bg} !important; border-color: {$button_bg} !important; color: #fff !important; }\n";
                 $out .= $selector . ":hover { background-color: {$button_hover_bg} !important; border-color: {$button_hover_bg} !important; }\n";
             } elseif ( false !== strpos( $selector, ' a' ) ) {

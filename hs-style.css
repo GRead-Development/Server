@@ -1222,11 +1222,7 @@
 
 button.hs-activity-filter-toggle,
 .hs-activity-filter-toggle {
-    background-color: #0073aa !important;
-    background: #0073aa !important;
-    color: #fff !important;
     padding: 12px 20px !important;
-    border: 2px solid #0073aa !important;
     border-radius: 6px !important;
     cursor: pointer !important;
     font-size: 16px !important;
@@ -1250,10 +1246,6 @@ button.hs-activity-filter-toggle,
 
 button.hs-activity-filter-toggle:hover,
 .hs-activity-filter-toggle:hover {
-    background-color: #005a87 !important;
-    background: #005a87 !important;
-    border-color: #005a87 !important;
-    color: #fff !important;
     text-decoration: none !important;
 }
 
@@ -1262,7 +1254,6 @@ button.hs-activity-filter-toggle:hover,
     transition: transform 0.3s;
     font-size: 14px;
     display: inline-block;
-    color: #fff !important;
 }
 
 .hs-activity-filter-toggle.active .arrow {
