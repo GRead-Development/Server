@@ -1,18 +1,33 @@
 <?php
 // [book_directory]: Display a list of available books
-function hs_book_directory_shortcode()
+function hs_book_directory_shortcode($atts)
 {
+    // Parse shortcode attributes with defaults
+    $atts = shortcode_atts([
+        'per_page' => 20,
+        'orderby' => 'title',
+        'order' => 'ASC',
+    ], $atts);
+
     if (is_user_logged_in())
     {
         $user_id = get_current_user_id();
         global $wpdb;
         $table_name = $wpdb -> prefix . 'user_books';
-        $user_book_ids = $wpdb -> get_col("SELECT book_id FROM $table_name WHERE user_id = $user_id");
+        // Fixed: Use prepared statement to prevent SQL injection
+        $user_book_ids = $wpdb -> get_col($wpdb->prepare("SELECT book_id FROM $table_name WHERE user_id = %d", $user_id));
 	}
+
+    // Get current page for pagination
+    $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+
     $args =
     [
         'post_type' => 'book',
-        'posts_per_page' => -1,
+        'posts_per_page' => intval($atts['per_page']), // Fixed: Use pagination instead of loading all books
+        'paged' => $paged,
+        'orderby' => sanitize_text_field($atts['orderby']),
+        'order' => sanitize_text_field($atts['order']),
     ];
 
     $books = new WP_Query($args);
@@ -68,7 +83,23 @@ function hs_book_directory_shortcode()
             $output .= '<li>No books are available. Check back later!</li>';
         }
 
-        $output .= '</ul></div>';
+        $output .= '</ul>';
+
+        // Add pagination
+        if ($books->max_num_pages > 1) {
+            $output .= '<div class="hs-pagination">';
+            $output .= paginate_links([
+                'base' => str_replace(999999999, '%#%', esc_url(get_pagenum_link(999999999))),
+                'format' => '?paged=%#%',
+                'current' => max(1, $paged),
+                'total' => $books->max_num_pages,
+                'prev_text' => __('&laquo; Previous'),
+                'next_text' => __('Next &raquo;'),
+            ]);
+            $output .= '</div>';
+        }
+
+        $output .= '</div>';
         wp_reset_postdata();
         return $output;
 }
