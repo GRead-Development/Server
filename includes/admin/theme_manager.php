@@ -719,7 +719,6 @@ function hs_generate_buddyx_theme_css() {
         'body.theme-%s footer',
 
         // BuddyPress core
-	'body.theme-%s .activity-inner',
 	'body.theme-%s .hs-book-content',
 	'body.theme-%s .hs-book-chapters',
 	'body.theme-%s .hs-book-tag',
@@ -813,11 +812,6 @@ function hs_generate_buddyx_theme_css() {
         'body.theme-%s #buddypress .activity-comments',
         'body.theme-%s #buddypress .bp-header',
         'body.theme-%s #buddypress .bp-widget',
-        'body.theme-%s .hs-activity-filter-wrapper',
-        'body.theme-%s .hs-activity-filter-toggle',
-        'body.theme-%s .hs-activity-filter-content',
-        'body.theme-%s .hs-activity-filter-content ul',
-        'body.theme-%s .hs-activity-filter-content ul li a',
         'body.theme-%s .hs-book-page-layout',
         'body.theme-%s .hs-book-page-cover',
         'body.theme-%s .hs-book-page-info',
@@ -877,7 +871,7 @@ function hs_generate_buddyx_theme_css() {
             // simple heuristics: global/container selectors set background/text; link selectors set color; button selectors set bg
             if ( false !== strpos( $selector, ' a:hover' ) ) {
                 $out .= $selector . " { color: {$link_hover} !important; }\n";
-            } elseif ( false !== strpos( $selector, '.hs-button' ) || false !== strpos( $selector, '.button' ) || false !== strpos( $selector, 'input[type=\"submit\"]' ) || false !== strpos( $selector, '.bp-primary-action' ) || false !== strpos( $selector, '.btn' ) || false !== strpos( $selector, '.hs-activity-filter-toggle' ) ) {
+            } elseif ( false !== strpos( $selector, '.hs-button' ) || false !== strpos( $selector, '.button' ) || false !== strpos( $selector, 'input[type=\"submit\"]' ) || false !== strpos( $selector, '.bp-primary-action' ) || false !== strpos( $selector, '.btn' ) ) {
                 $out .= $selector . " { background-color: {$button_bg} !important; border-color: {$button_bg} !important; color: #fff !important; }\n";
                 $out .= $selector . ":hover { background-color: {$button_hover_bg} !important; border-color: {$button_hover_bg} !important; }\n";
             } elseif ( false !== strpos( $selector, ' a' ) ) {
