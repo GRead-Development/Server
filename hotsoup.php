@@ -1073,12 +1073,22 @@ function hs_book_details_page($content)
 			$details_html .= '</div>';
 		}
 
-		$content .= $details_html;
+		// Replace content with our custom layout instead of appending
+		return $details_html;
 	}
 
 	return $content;
 }
 add_filter('the_content', 'hs_book_details_page');
+
+// Remove post thumbnail from book pages
+function hs_remove_book_thumbnail($html, $post_id) {
+	if (get_post_type($post_id) === 'book') {
+		return '';
+	}
+	return $html;
+}
+add_filter('post_thumbnail_html', 'hs_remove_book_thumbnail', 10, 2);
 
 // Styling for book details page
 function hs_book_details_page_styles()
@@ -1088,6 +1098,20 @@ function hs_book_details_page_styles()
 		echo '<style>
 		.post-navigation,
 		.nav-links
+		{
+			display: none !important;
+		}
+
+		/* Hide default WordPress post elements on book pages */
+		.single-book .post-thumbnail,
+		.single-book .entry-thumbnail,
+		.single-book .wp-post-image,
+		.single-book article .entry-content > p:first-of-type,
+		.single-book article .entry-content > .wp-block-image,
+		.single-book .entry-meta,
+		.single-book .entry-footer,
+		.single-book .buddypress-read-together-button,
+		.single-book [class*="read-together"]
 		{
 			display: none !important;
 		}
