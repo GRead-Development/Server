@@ -45,10 +45,10 @@ function hs_gread_landing_page_shortcode($atts) {
                         <a href="<?php echo esc_url($register_url); ?>" class="gread-btn gread-btn-primary">Get Started Free</a>
                         <a href="<?php echo esc_url($login_url); ?>" class="gread-btn gread-btn-secondary">Sign In</a>
                     </div>
-                <?php else: ?>
-                    <div class="gread-hero-cta">
-                        <a href="<?php echo esc_url(bp_loggedin_user_domain() . 'my-books/'); ?>" class="gread-btn gread-btn-primary">Go to My Library</a>
-                    </div>
+      //          <?php else: ?>
+//                    <div class="gread-hero-cta">
+  //                      <a href="<?php echo esc_url('my-library/'); ?>" class="gread-btn gread-btn-primary">Go to My Library</a>
+    //                </div>
                 <?php endif; ?>
             </div>
         </section>
