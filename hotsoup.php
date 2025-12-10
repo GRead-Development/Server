@@ -418,25 +418,39 @@ function hs_enqueue()
     global $post;
 
 
-    if (is_a($post, 'WP_Post') && (has_shortcode($post -> post_content, 'my_books') || has_shortcode($post -> post_content, 'book_directory') || has_shortcode($post -> post_content, 'hs_book_search')) || is_singular('book') || (function_exists('bp_is_user') && bp_is_user()))
+    // Check if we should load the scripts
+    $should_load = false;
 
-    {
+    // Load on pages with specific shortcodes
+    if (is_a($post, 'WP_Post') && (has_shortcode($post->post_content, 'my_books') || has_shortcode($post->post_content, 'book_directory') || has_shortcode($post->post_content, 'hs_book_search'))) {
+        $should_load = true;
+    }
 
-        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css', [], '1.2');
+    // Load on book pages
+    if (is_singular('book')) {
+        $should_load = true;
+    }
 
-        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.2', true);
+    // Load on BuddyPress pages (user profiles, activity, etc.)
+    if (function_exists('bp_is_user') && bp_is_user()) {
+        $should_load = true;
+    }
 
+    // Load on activity pages
+    if (function_exists('bp_is_activity_component') && bp_is_activity_component()) {
+        $should_load = true;
+    }
+
+    if ($should_load) {
+        wp_enqueue_style('hs_style', plugin_dir_url(__FILE__) . 'hs-style.css', [], '1.3');
+
+        wp_enqueue_script('hs-main-js', plugin_dir_url(__FILE__) . 'hs-main.js', ['jquery'], '1.3', true);
 
         // Pass the data to JS
-
         wp_localize_script('hs-main-js', 'hs_ajax', [
-
             'ajax_url' => admin_url('admin-ajax.php'),
-
             'nonce' => wp_create_nonce('hs_ajax_nonce'),
-
         ]);
-
     }
 }
 
