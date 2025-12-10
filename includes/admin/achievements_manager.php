@@ -1081,9 +1081,7 @@ function hs_achievements_profile_nav()
 		]);
 	}
 }
-// Use bp_setup_nav for backwards compatibility, bp_init as fallback for newer BuddyPress
-add_action('bp_setup_nav', 'hs_achievements_profile_nav', 100);
-add_action('bp_init', 'hs_achievements_profile_nav', 100);
+add_action('bp_setup_nav', 'hs_achievements_profile_nav');
 
 
 // Render the achievements screen
