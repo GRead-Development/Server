@@ -1615,3 +1615,325 @@ button.hs-activity-filter-toggle:hover,
         height: 240px;
     }
 }
+
+/* ====================================
+   GRead Landing Page Styles
+   ==================================== */
+
+.gread-landing-page {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+/* Hero Section */
+.gread-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.gread-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,255,255,0.1)" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
+    background-size: cover;
+    opacity: 0.5;
+}
+
+.gread-hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.gread-hero-title {
+    font-size: 48px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    line-height: 1.2;
+}
+
+.gread-hero-subtitle {
+    font-size: 20px;
+    margin: 0 0 40px 0;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.gread-hero-cta {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.gread-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.gread-btn-primary {
+    background-color: #fff;
+    color: #667eea;
+}
+
+.gread-btn-primary:hover {
+    background-color: #f0f0f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.gread-btn-secondary {
+    background-color: transparent;
+    color: #fff;
+    border: 2px solid #fff;
+}
+
+.gread-btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.gread-btn-large {
+    padding: 18px 40px;
+    font-size: 18px;
+}
+
+/* Features Section */
+.gread-features {
+    padding: 80px 20px;
+    background-color: #f9fafb;
+}
+
+.gread-features-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.gread-section-title {
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 20px 0;
+    color: #1a202c;
+}
+
+.gread-section-subtitle {
+    font-size: 18px;
+    text-align: center;
+    color: #718096;
+    margin: 0 0 50px 0;
+}
+
+.gread-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 50px;
+}
+
+.gread-feature-card {
+    background: white;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.gread-feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+.gread-feature-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    color: #667eea;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gread-feature-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    color: #1a202c;
+}
+
+.gread-feature-description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #4a5568;
+    margin: 0;
+}
+
+/* Books Preview Section */
+.gread-books-preview {
+    padding: 80px 20px;
+    background-color: #fff;
+}
+
+.gread-books-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.gread-books-cta {
+    text-align: center;
+    margin-top: 50px;
+}
+
+/* Statistics Section */
+.gread-stats {
+    padding: 80px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.gread-stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.gread-stats .gread-section-title {
+    color: white;
+}
+
+.gread-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+    margin-top: 50px;
+}
+
+.gread-stat-card {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.gread-stat-number {
+    font-size: 48px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.gread-stat-label {
+    font-size: 16px;
+    opacity: 0.9;
+    color: white;
+}
+
+/* Final CTA Section */
+.gread-final-cta {
+    padding: 100px 20px;
+    background-color: #f9fafb;
+    text-align: center;
+}
+
+.gread-final-cta-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.gread-cta-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0 0 20px 0;
+    color: #1a202c;
+}
+
+.gread-cta-subtitle {
+    font-size: 20px;
+    color: #4a5568;
+    margin: 0 0 40px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .gread-hero {
+        padding: 60px 20px;
+    }
+
+    .gread-hero-title {
+        font-size: 32px;
+    }
+
+    .gread-hero-subtitle {
+        font-size: 16px;
+    }
+
+    .gread-hero-cta {
+        flex-direction: column;
+    }
+
+    .gread-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .gread-features,
+    .gread-books-preview,
+    .gread-stats,
+    .gread-final-cta {
+        padding: 50px 20px;
+    }
+
+    .gread-section-title {
+        font-size: 28px;
+    }
+
+    .gread-features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .gread-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .gread-stat-number {
+        font-size: 36px;
+    }
+
+    .gread-cta-title {
+        font-size: 28px;
+    }
+
+    .gread-cta-subtitle {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gread-hero-title {
+        font-size: 28px;
+    }
+
+    .gread-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
