@@ -803,6 +803,10 @@ jQuery(document).ready(function($) {
                 console.log('Button is visible:', buttonCheck.is(':visible'));
                 console.log('Button display style:', buttonCheck.css('display'));
                 console.log('Button parent:', buttonCheck.parent().attr('class'));
+                console.log('Button text content:', buttonCheck.text());
+                console.log('Button HTML:', buttonCheck.html());
+                console.log('Button background color:', buttonCheck.css('background-color'));
+                console.log('Button color:', buttonCheck.css('color'));
             }
         }, 100);
 
