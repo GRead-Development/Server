@@ -649,6 +649,7 @@ jQuery(document).ready(function($) {
     // --- Book Cover Fetching from OpenLibrary ---
     // This fetches book covers client-side (using user's IP) and caches them locally
     function fetchBookCovers() {
+        // Fetch covers for library cards
         $('.hs-book-card').each(function() {
             const card = $(this);
             const isbn = card.data('isbn');
@@ -715,5 +716,33 @@ jQuery(document).ready(function($) {
     $(document).on('hs-library-updated', function() {
         fetchBookCovers();
     });
+
+    // --- Fetch cover for book page ---
+    function fetchBookPageCover() {
+        const coverDiv = $('.hs-book-page-cover-img.no-cover');
+        if (coverDiv.length === 0) return;
+
+        const isbn = coverDiv.data('isbn');
+        if (!isbn || isbn === '') return;
+
+        coverDiv.addClass('loading');
+
+        const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+
+        const testImg = new Image();
+        testImg.onload = function() {
+            coverDiv.css('background-image', `url(${openLibraryUrl})`);
+            coverDiv.removeClass('loading no-cover');
+        };
+
+        testImg.onerror = function() {
+            coverDiv.removeClass('loading');
+        };
+
+        testImg.src = openLibraryUrl;
+    }
+
+    // Run on book pages
+    fetchBookPageCover();
 
 }); // <-- This is the one, final closing bracket for jQuery(document).ready()

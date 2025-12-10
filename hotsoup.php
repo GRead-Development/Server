@@ -943,51 +943,90 @@ function hs_book_details_page($content)
 		$avg_rating = get_post_meta($book_id, 'hs_average_rating', true);
 		$rating_count = (int)get_post_meta($book_id, 'hs_rating_count', true);
 
-		$details_html = '<div class="hs-single-book-details">';
+		// Get book cover
+		$cover_url = get_the_post_thumbnail_url($book_id, 'large');
+		$has_cover = !empty($cover_url);
 
-		$details_html .= '<h2>Book Information</h2>';
-		$details_html .= '<ul>';
+		// Get ISBN for cover fallback
+		if (empty($isbn)) {
+			$isbn_table = $wpdb->prefix . 'hs_book_isbns';
+			$isbn_row = $wpdb->get_row($wpdb->prepare("SELECT isbn FROM {$isbn_table} WHERE post_id = %d AND is_primary = 1 LIMIT 1", $book_id));
+			if ($isbn_row) {
+				$isbn = $isbn_row->isbn;
+			}
+		}
+
+		// Get book tags
+		$book_tags = function_exists('hs_get_book_tags') ? hs_get_book_tags($book_id) : [];
+
+		$details_html = '<div class="hs-book-page-layout">';
+
+		// Left column - Book cover
+		$details_html .= '<div class="hs-book-page-cover">';
+		$cover_class = $has_cover ? 'hs-book-page-cover-img' : 'hs-book-page-cover-img no-cover';
+		$details_html .= '<div class="' . esc_attr($cover_class) . '" style="background-image: url(' . esc_url($cover_url) . ');" data-isbn="' . esc_attr($isbn) . '"></div>';
+		$details_html .= '</div>';
+
+		// Right column - Book details
+		$details_html .= '<div class="hs-book-page-info">';
+
+		$details_html .= '<div class="hs-book-page-meta">';
 
 		if (!empty($author))
 		{
-			$details_html .= '<li><strong>Author:</strong> ' . esc_html($author) . '</li>';
+			$details_html .= '<p class="hs-book-meta-item"><strong>Author:</strong> ' . esc_html($author) . '</p>';
 		}
 
 		if (!empty($isbn))
 		{
-			$details_html .= '<li><strong>ISBN:</strong> ' . esc_html($isbn) . '</li>';
+			$details_html .= '<p class="hs-book-meta-item"><strong>ISBN:</strong> ' . esc_html($isbn) . '</p>';
 		}
 
-		if (!empty($pub_year))
+		if (!empty($total_pages))
 		{
-			$details_html .= '<li><strong>Pages:</strong> ' . esc_html($total_pages) . '</li>';
+			$details_html .= '<p class="hs-book-meta-item"><strong>Pages:</strong> ' . esc_html($total_pages) . '</p>';
 		}
 
-		$details_html .= '</ul>';
-
-
-		// Community statistics
-		$details_html .= '<h2>Community Statistics</h2>';
-		$details_html .= '<ul>';
-		$details_html .= '<li><strong>This book is in </strong>' . intval($total_readers) . ' <strong>libraries.</strong></li>';
-		$details_html .= '<li><strong>This book has been completed by </strong>' . intval($completed_count) . ' user(s).</li>';
-
-		// Average rating
+		// Ratings section
+		$details_html .= '<div class="hs-book-page-rating">';
 		if ($rating_count > 0 && !empty($avg_rating))
 		{
 			$rating_label = _n('rating', 'ratings', $rating_count, 'hotsoup');
-			$details_html .= '<li><strong>Average Rating:</strong> ' . esc_html(number_format($avg_rating, 2)) . ' / 10.0 (from ' . $rating_count . ' ' . $rating_label . ')</li>';
+			$details_html .= '<p class="hs-book-meta-item"><strong>Average Rating:</strong> <span class="hs-rating-value">' . esc_html(number_format($avg_rating, 2)) . ' / 10.0</span></p>';
+			$details_html .= '<p class="hs-rating-count">' . $rating_count . ' ' . $rating_label . '</p>';
 		}
-
 		else
 		{
-			$details_html .= '<li><strong>Average Rating:</strong> Not yet rated. :(</li>';
+			$details_html .= '<p class="hs-book-meta-item"><strong>Average Rating:</strong> Not yet rated</p>';
+		}
+		$details_html .= '</div>';
+
+		// Community stats
+		$details_html .= '<div class="hs-book-page-stats">';
+		$details_html .= '<p class="hs-stat-item">📚 In ' . intval($total_readers) . ' libraries</p>';
+		$details_html .= '<p class="hs-stat-item">✅ Completed by ' . intval($completed_count) . ' users</p>';
+		$details_html .= '</div>';
+
+		$details_html .= '</div>'; // hs-book-page-meta
+
+		// Tags section
+		if (!empty($book_tags)) {
+			$details_html .= '<div class="hs-book-page-tags">';
+			$details_html .= '<strong>Tags:</strong> ';
+			foreach ($book_tags as $tag) {
+				$tag_url = add_query_arg(['hs_tag' => $tag->tag_slug], home_url('/books/'));
+				$details_html .= '<a href="' . esc_url($tag_url) . '" class="hs-book-page-tag">';
+				$details_html .= esc_html($tag->tag_name);
+				$details_html .= '</a>';
+			}
+			$details_html .= '</div>';
 		}
 
-		$details_html .= '<li><button id="hs-open-report-modal" class="hs-button">Report Inaccuracy</button></li>';
-		$details_html .= '</ul>';
+		// Report button
+		$details_html .= '<button id="hs-open-report-modal" class="hs-button hs-report-inaccuracy-btn">Report Inaccuracy</button>';
 
-		$details_html .= '</div>';
+		$details_html .= '</div>'; // hs-book-page-info
+		$details_html .= '</div>'; // hs-book-page-layout
 
 		// Show written reviews
 		$reviews_table = $wpdb -> prefix . 'hs_book_reviews';

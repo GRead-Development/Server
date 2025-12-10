@@ -38,14 +38,15 @@ function hs_display_chapters_on_book_page($content) {
 
     $chapters_html = '';
 
+    // More Information collapsible section
+    $chapters_html .= '<details class="hs-more-info-section">';
+    $chapters_html .= '<summary><h2>More Information</h2></summary>';
+    $chapters_html .= '<div class="hs-more-info-content">';
+
     // Display approved chapters
     if ($approved_chapters && !empty($approved_chapters)) {
         $chapters_html .= '<div class="hs-book-chapters">';
-        $chapters_html .= '<h2 onclick="hsToggleChapters()">';
-        $chapters_html .= 'Chapters (' . count($approved_chapters) . ')';
-        $chapters_html .= ' <span class="hs-chapters-toggle">▼</span>';
-        $chapters_html .= '</h2>';
-        $chapters_html .= '<div class="hs-chapters-content">';
+        $chapters_html .= '<h3>Chapters (' . count($approved_chapters) . ')</h3>';
         $chapters_html .= '<ul class="hs-chapters-list">';
 
         foreach ($approved_chapters as $chapter) {
@@ -57,33 +58,25 @@ function hs_display_chapters_on_book_page($content) {
 
         $chapters_html .= '</ul>';
         $chapters_html .= '</div>';
-        $chapters_html .= '</div>';
     } else {
         // No chapters yet - show empty state
         $chapters_html .= '<div class="hs-book-chapters">';
-        $chapters_html .= '<h2>Chapters</h2>';
-        $chapters_html .= '<p class="hs-chapters-empty">No chapter information available yet. Be the first to contribute!</p>';
+        $chapters_html .= '<h3>Chapters</h3>';
+        $chapters_html .= '<p class="hs-chapters-empty">No chapter information available yet. <a href="#hs-contributions-section">Contribute to earn points!</a></p>';
         $chapters_html .= '</div>';
     }
 
-    // Display approved tags
-    $book_tags = hs_get_book_tags($book_id);
-    if (!empty($book_tags)) {
-        $chapters_html .= '<div class="hs-book-tags-section">';
-        $chapters_html .= '<h3>Tags</h3>';
-        $chapters_html .= '<div class="hs-book-tags">';
-        foreach ($book_tags as $tag) {
-            $tag_url = add_query_arg(['hs_tag' => $tag->tag_slug], home_url('/books/'));
-            $chapters_html .= '<a href="' . esc_url($tag_url) . '" class="hs-book-tag">';
-            $chapters_html .= esc_html($tag->tag_name);
-            $chapters_html .= '</a>';
-        }
-        $chapters_html .= '</div>';
-        $chapters_html .= '</div>';
-    }
+    // TODO: Add character information display here when available
+    $chapters_html .= '<div class="hs-book-characters">';
+    $chapters_html .= '<h3>Characters</h3>';
+    $chapters_html .= '<p class="hs-characters-empty">No character information available yet. <a href="#hs-contributions-section">Contribute to earn points!</a></p>';
+    $chapters_html .= '</div>';
+
+    $chapters_html .= '</div>'; // hs-more-info-content
+    $chapters_html .= '</details>'; // hs-more-info-section
 
     // Add all contribution buttons
-    $chapters_html .= '<div class="hs-contributions-section">';
+    $chapters_html .= '<div id="hs-contributions-section" class="hs-contributions-section">';
     $chapters_html .= '<h3>Contribute to this book</h3>';
     $chapters_html .= '<div class="hs-contribution-buttons">';
 
@@ -117,20 +110,6 @@ function hs_display_chapters_on_book_page($content) {
 
     $chapters_html .= '</div>'; // contribution-buttons
     $chapters_html .= '</div>'; // contributions-section
-
-    // Add JavaScript for collapsible chapters
-    $chapters_html .= '
-    <script>
-    function hsToggleChapters() {
-        const content = document.querySelector(".hs-chapters-content");
-        const toggle = document.querySelector(".hs-chapters-toggle");
-
-        if (content && toggle) {
-            content.classList.toggle("collapsed");
-            toggle.classList.toggle("collapsed");
-        }
-    }
-    </script>';
 
     return $content . $chapters_html;
 }

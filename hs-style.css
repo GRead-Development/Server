@@ -968,3 +968,238 @@
         font-size: 11px;
     }
 }
+
+/* ================================================
+ * Book Page Layout
+ * ================================================ */
+
+.hs-book-page-layout {
+    display: flex;
+    gap: 30px;
+    margin: 30px 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+}
+
+.hs-book-page-cover {
+    flex: 0 0 300px;
+}
+
+.hs-book-page-cover-img {
+    width: 300px;
+    height: 450px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    background-color: #ddd;
+}
+
+.hs-book-page-cover-img.no-cover {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.hs-book-page-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.hs-book-page-meta {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.hs-book-meta-item {
+    margin: 10px 0;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.hs-book-meta-item strong {
+    color: #333;
+}
+
+.hs-rating-value {
+    color: #FFD700;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.hs-rating-count {
+    font-size: 14px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.hs-book-page-stats {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.hs-stat-item {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+.hs-book-page-tags {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.hs-book-page-tags strong {
+    display: block;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.hs-book-page-tag {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 4px;
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border-radius: 15px;
+    text-decoration: none;
+    font-size: 13px;
+    transition: background-color 0.2s;
+}
+
+.hs-book-page-tag:hover {
+    background-color: #bbdefb;
+}
+
+.hs-report-inaccuracy-btn {
+    background-color: #ff9800;
+    color: #fff;
+    font-size: 16px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.hs-report-inaccuracy-btn:hover {
+    background-color: #f57c00;
+}
+
+/* More Information Section */
+.hs-more-info-section {
+    margin: 30px 0;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0;
+}
+
+.hs-more-info-section summary {
+    padding: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    background-color: #f5f5f5;
+    border-radius: 8px 8px 0 0;
+    transition: background-color 0.2s;
+}
+
+.hs-more-info-section summary:hover {
+    background-color: #eeeeee;
+}
+
+.hs-more-info-section summary h2 {
+    margin: 0;
+    display: inline;
+    font-size: 1.5em;
+}
+
+.hs-more-info-section[open] summary {
+    border-bottom: 1px solid #ddd;
+    border-radius: 8px 8px 0 0;
+}
+
+.hs-more-info-content {
+    padding: 20px;
+}
+
+.hs-book-chapters,
+.hs-book-characters {
+    margin-bottom: 20px;
+}
+
+.hs-book-chapters h3,
+.hs-book-characters h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.hs-chapters-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.hs-chapter-item {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: #f9f9f9;
+    border-left: 3px solid #0073aa;
+    border-radius: 4px;
+}
+
+.hs-chapter-number {
+    font-weight: bold;
+    color: #0073aa;
+    margin-right: 10px;
+}
+
+.hs-chapter-title {
+    color: #333;
+}
+
+.hs-chapters-empty,
+.hs-characters-empty {
+    color: #666;
+    font-style: italic;
+}
+
+.hs-chapters-empty a,
+.hs-characters-empty a {
+    color: #0073aa;
+    text-decoration: underline;
+}
+
+/* Responsive book page */
+@media (max-width: 768px) {
+    .hs-book-page-layout {
+        flex-direction: column;
+        padding: 15px;
+    }
+
+    .hs-book-page-cover {
+        flex: 0 0 auto;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .hs-book-page-cover-img {
+        width: 200px;
+        height: 300px;
+    }
+}
