@@ -1490,3 +1490,137 @@ button.hs-activity-filter-toggle:hover,
         text-align: center;
     }
 }
+
+/* Horizontal Scrollable Book Shelves */
+.hs-book-shelf-container {
+    margin: 30px 0;
+    padding: 20px 0;
+}
+
+.hs-shelf-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+    padding-left: 10px;
+}
+
+.hs-book-shelf {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 20px;
+    padding: 10px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollbar styling for webkit browsers */
+.hs-book-shelf::-webkit-scrollbar {
+    height: 10px;
+}
+
+.hs-book-shelf::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 5px;
+}
+
+.hs-book-shelf::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+.hs-book-shelf::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Individual shelf book card */
+.hs-shelf-book-card {
+    min-width: 180px;
+    max-width: 180px;
+    height: 280px;
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+
+.hs-shelf-book-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.hs-shelf-book-link {
+    display: block;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+}
+
+.hs-shelf-book-card .hs-book-cover {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hs-shelf-book-card .hs-book-cover.no-cover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.hs-shelf-book-card .hs-book-cover-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+    padding: 15px 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hs-shelf-book-card:hover .hs-book-cover-overlay {
+    opacity: 1;
+}
+
+.hs-shelf-book-card .hs-book-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 0 5px 0;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.hs-shelf-book-card .hs-book-author {
+    font-size: 12px;
+    color: #ddd;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hs-shelf-title {
+        font-size: 20px;
+    }
+    
+    .hs-shelf-book-card {
+        min-width: 150px;
+        max-width: 150px;
+        height: 240px;
+    }
+}

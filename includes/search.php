@@ -177,18 +177,21 @@ function hs_search_callback()
         }
 
         $table_name = HS_SEARCH_TABLE;
+        // Use REGEXP for whole word matching with word boundaries
+        $regexp_query = '[[:<:]]' . $wpdb->esc_like($search_query) . '[[:>:]]';
+        // Keep LIKE for ISBN as it often needs partial matching
         $like_query = '%' . $wpdb->esc_like($search_query) . '%';
 
         $where_clauses = [];
         $query_params = [];
 
         if ($search_by === 'title' || $search_by === 'all') {
-            $where_clauses[] = "title LIKE %s";
-            $query_params[] = $like_query;
+            $where_clauses[] = "title REGEXP %s";
+            $query_params[] = $regexp_query;
         }
         if ($search_by === 'author' || $search_by === 'all') {
-            $where_clauses[] = "author LIKE %s";
-            $query_params[] = $like_query;
+            $where_clauses[] = "author REGEXP %s";
+            $query_params[] = $regexp_query;
         }
         if ($search_by === 'isbn' || $search_by === 'all') {
             $where_clauses[] = "isbn LIKE %s";
