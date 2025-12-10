@@ -1250,17 +1250,21 @@
 }
 
 .hs-activity-filter-content {
-    display: none !important;
     margin-top: 10px !important;
     padding: 15px !important;
     background-color: #f9f9f9 !important;
     border-radius: 6px !important;
     border: 1px solid #ddd !important;
     max-width: 600px !important;
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
 }
 
 .hs-activity-filter-content.show {
-    display: block !important;
+    max-height: 500px;
+    opacity: 1;
 }
 
 /* Hide original filter tabs and move them into our menu */
