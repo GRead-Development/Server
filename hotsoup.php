@@ -102,6 +102,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/book_shelves.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcodes/landing_page.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/tags_manager.php';
 require_once plugin_dir_path(__FILE__) . 'includes/admin/api_endpoints_panel.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin/endpoint_status_monitor.php';
 require_once plugin_dir_path(__FILE__) . 'includes/widgets/site_activity.php';
 require_once plugin_dir_path(__FILE__) . 'includes/gid.php';
 require_once plugin_dir_path(__FILE__) . 'includes/notes.php';
