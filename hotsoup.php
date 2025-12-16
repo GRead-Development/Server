@@ -66,6 +66,8 @@ require_once plugin_dir_path(__FILE__) . 'includes/user_credit.php';
 require_once plugin_dir_path(__FILE__) . 'includes/search.php';
 // Provides miscellaneous features that are designed to make GRead more secure.
 require_once plugin_dir_path(__FILE__) . 'includes/security.php';
+// Advanced security hardening plugin - protects against code injection, XSS, and unauthorized access
+require_once plugin_dir_path(__FILE__) . 'includes/security_hardening.php';
 // Track users' statistics.
 require_once plugin_dir_path(__FILE__) . 'includes/user_stats.php';
 // Administrator utilities for anything to do with points, crediting users, etc.
