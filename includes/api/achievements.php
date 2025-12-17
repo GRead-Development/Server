@@ -258,6 +258,28 @@ function gread_register_achievements_routes() {
         )
     ));
 
+    // Get user achievements grouped by category (v2)
+    register_rest_route('gread/v2', '/user/(?P<id>\d+)/achievements/by-category', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_user_achievements_by_category',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            )
+        )
+    ));
+
+    // Get current user achievements grouped by category (v2)
+    register_rest_route('gread/v2', '/me/achievements/by-category', array(
+        'methods' => 'GET',
+        'callback' => 'gread_v2_get_current_user_achievements_by_category',
+        'permission_callback' => 'gread_check_user_permission'
+    ));
+
 }
 add_action('rest_api_init', 'gread_register_achievements_routes');
 
@@ -635,6 +657,110 @@ function gread_get_user_stats_for_achievements($user_id) {
 
 
 /**
+ * Calculate achievement rarity statistics
+ * This should be run daily via cron
+ */
+function gread_calculate_achievement_rarity_stats() {
+    global $wpdb;
+
+    $achievements_table = $wpdb->prefix . 'hs_achievements';
+    $user_achievements_table = $wpdb->prefix . 'hs_user_achievements';
+
+    // Get total active users (users who have at least one achievement OR have read at least one book)
+    $total_users = intval($wpdb->get_var(
+        "SELECT COUNT(DISTINCT user_id)
+         FROM {$user_achievements_table}"
+    ));
+
+    // Fallback to all users if no achievements have been unlocked yet
+    if ($total_users === 0) {
+        $total_users = intval($wpdb->get_var(
+            "SELECT COUNT(ID) FROM {$wpdb->users}"
+        ));
+    }
+
+    // Calculate unlock count and percentage for each achievement
+    $achievement_stats = $wpdb->get_results(
+        "SELECT a.id,
+                COUNT(DISTINCT ua.user_id) as unlock_count
+         FROM {$achievements_table} a
+         LEFT JOIN {$user_achievements_table} ua ON a.id = ua.achievement_id
+         GROUP BY a.id"
+    );
+
+    $rarity_data = [];
+    foreach ($achievement_stats as $stat) {
+        $unlock_percentage = $total_users > 0 ? ($stat->unlock_count / $total_users) * 100 : 0;
+
+        // Determine rarity tier
+        $rarity_tier = gread_get_rarity_tier($unlock_percentage);
+
+        $rarity_data[$stat->id] = [
+            'unlock_count' => intval($stat->unlock_count),
+            'unlock_percentage' => round($unlock_percentage, 2),
+            'rarity_tier' => $rarity_tier
+        ];
+    }
+
+    // Store in a transient that expires in 25 hours (daily + buffer)
+    set_transient('gread_achievement_rarity_stats', [
+        'total_users' => $total_users,
+        'achievements' => $rarity_data,
+        'last_updated' => current_time('mysql')
+    ], 25 * HOUR_IN_SECONDS);
+
+    return $rarity_data;
+}
+
+
+/**
+ * Get rarity tier based on unlock percentage
+ */
+function gread_get_rarity_tier($percentage) {
+    if ($percentage >= 75) {
+        return 'common';
+    } elseif ($percentage >= 40) {
+        return 'uncommon';
+    } elseif ($percentage >= 15) {
+        return 'rare';
+    } elseif ($percentage >= 5) {
+        return 'epic';
+    } else {
+        return 'legendary';
+    }
+}
+
+
+/**
+ * Get achievement rarity data (from cache or calculate)
+ */
+function gread_get_achievement_rarity_stats() {
+    $stats = get_transient('gread_achievement_rarity_stats');
+
+    if ($stats === false) {
+        // Transient expired or doesn't exist, recalculate
+        $stats = gread_calculate_achievement_rarity_stats();
+    }
+
+    return $stats;
+}
+
+
+/**
+ * Schedule daily rarity calculation
+ */
+function gread_schedule_rarity_calculation() {
+    if (!wp_next_scheduled('gread_daily_rarity_calculation')) {
+        wp_schedule_event(time(), 'daily', 'gread_daily_rarity_calculation');
+    }
+}
+add_action('init', 'gread_schedule_rarity_calculation');
+
+// Hook the calculation to the scheduled event
+add_action('gread_daily_rarity_calculation', 'gread_calculate_achievement_rarity_stats');
+
+
+/**
  * Format achievement data for API response
  */
 function gread_format_achievement($achievement) {
@@ -676,6 +802,13 @@ function gread_format_achievement($achievement) {
         }
     }
 
+    // Get rarity data
+    $rarity_stats = gread_get_achievement_rarity_stats();
+    $rarity = null;
+    if (isset($rarity_stats['achievements'][$achievement->id])) {
+        $rarity = $rarity_stats['achievements'][$achievement->id];
+    }
+
     return array(
         'id' => intval($achievement->id),
         'slug' => $achievement->slug,
@@ -697,7 +830,8 @@ function gread_format_achievement($achievement) {
         'reward' => intval($achievement->points_reward),
         'is_hidden' => boolval($achievement->is_hidden),
         'category' => $achievement->category ?: null,
-        'display_order' => intval($achievement->display_order)
+        'display_order' => intval($achievement->display_order),
+        'rarity' => $rarity
     );
 }
 
@@ -772,6 +906,13 @@ function gread_format_achievement_with_progress($achievement, $user_stats, $user
         }
     }
 
+    // Get rarity data
+    $rarity_stats = gread_get_achievement_rarity_stats();
+    $rarity = null;
+    if (isset($rarity_stats['achievements'][$achievement->id])) {
+        $rarity = $rarity_stats['achievements'][$achievement->id];
+    }
+
     return array(
         'id' => intval($achievement->id),
         'slug' => $achievement->slug,
@@ -800,7 +941,8 @@ function gread_format_achievement_with_progress($achievement, $user_stats, $user
         'reward' => $should_mask ? null : intval($achievement->points_reward),
         'is_hidden' => $is_hidden,
         'category' => $achievement->category ?: null,
-        'display_order' => intval($achievement->display_order)
+        'display_order' => intval($achievement->display_order),
+        'rarity' => $rarity
     );
 }
 
@@ -1010,4 +1152,107 @@ function gread_v2_check_current_user_achievements($request) {
     $new_request->set_param('filter', 'unlocked');
 
     return gread_v2_get_user_achievements_with_progress($new_request);
+}
+
+
+/**
+ * V2: Get user achievements grouped by category
+ * Returns achievements organized by category with counts
+ */
+function gread_v2_get_user_achievements_by_category($request) {
+    global $wpdb;
+
+    $user_id = intval($request['id']);
+
+    // Verify user exists
+    $user = get_userdata($user_id);
+    if (!$user) {
+        return new WP_Error('user_not_found', 'User not found', array('status' => 404));
+    }
+
+    $achievements_table = $wpdb->prefix . 'hs_achievements';
+    $user_achievements_table = $wpdb->prefix . 'hs_user_achievements';
+
+    // Get all achievements with unlock status
+    $query = "SELECT a.*, ua.date_unlocked, ua.id IS NOT NULL as is_unlocked
+              FROM {$achievements_table} a
+              LEFT JOIN {$user_achievements_table} ua ON a.id = ua.achievement_id AND ua.user_id = %d
+              ORDER BY a.category ASC, a.display_order ASC, a.name ASC";
+
+    $achievements = $wpdb->get_results($wpdb->prepare($query, $user_id));
+
+    if ($wpdb->last_error) {
+        return new WP_Error('db_error', $wpdb->last_error, array('status' => 500));
+    }
+
+    // Get user stats
+    $user_stats = gread_get_user_stats_for_achievements($user_id);
+
+    // Group achievements by category
+    $categories = [];
+    $category_counts = [];
+
+    foreach ($achievements as $achievement) {
+        $category = $achievement->category ?: 'Uncategorized';
+
+        if (!isset($categories[$category])) {
+            $categories[$category] = [];
+            $category_counts[$category] = ['total' => 0, 'unlocked' => 0, 'locked' => 0];
+        }
+
+        $formatted_achievement = gread_format_achievement_with_progress($achievement, $user_stats, $user_id);
+        $categories[$category][] = $formatted_achievement;
+
+        // Update counts
+        $category_counts[$category]['total']++;
+        if ($formatted_achievement['is_unlocked']) {
+            $category_counts[$category]['unlocked']++;
+        } else {
+            $category_counts[$category]['locked']++;
+        }
+    }
+
+    // Format the response
+    $result = [];
+    foreach ($categories as $category_name => $category_achievements) {
+        $result[] = [
+            'category' => $category_name,
+            'total_count' => $category_counts[$category_name]['total'],
+            'unlocked_count' => $category_counts[$category_name]['unlocked'],
+            'locked_count' => $category_counts[$category_name]['locked'],
+            'achievements' => $category_achievements
+        ];
+    }
+
+    // Calculate overall totals
+    $total_achievements = count($achievements);
+    $total_unlocked = 0;
+    foreach ($category_counts as $counts) {
+        $total_unlocked += $counts['unlocked'];
+    }
+
+    return rest_ensure_response([
+        'user_id' => $user_id,
+        'total_achievements' => $total_achievements,
+        'total_unlocked' => $total_unlocked,
+        'total_locked' => $total_achievements - $total_unlocked,
+        'categories' => $result
+    ]);
+}
+
+
+/**
+ * V2: Get current user achievements grouped by category
+ */
+function gread_v2_get_current_user_achievements_by_category($request) {
+    $user_id = get_current_user_id();
+
+    if (!$user_id) {
+        return new WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+    }
+
+    // Use the by-category endpoint for current user
+    $new_request = new WP_REST_Request('GET', "/gread/v2/user/$user_id/achievements/by-category");
+
+    return gread_v2_get_user_achievements_by_category($new_request);
 }

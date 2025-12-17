@@ -269,3 +269,47 @@ function gread_api_unlike_note($request) {
     ), 200);
 }
 
+/**
+ * Get notes that mention a specific book
+ */
+function gread_api_get_notes_mentioning_book($request) {
+    $book_id = intval($request['book_id']);
+    $current_user_id = get_current_user_id();
+
+    // Verify book exists
+    $book = get_post($book_id);
+    if (!$book || $book->post_type !== 'book') {
+        return new WP_Error('invalid_book', 'Book not found', array('status' => 404));
+    }
+
+    // Get notes mentioning this book
+    // If user is logged in, include their private notes too
+    $notes = hs_get_notes_mentioning_book($book_id, $current_user_id ? true : false, $current_user_id);
+
+    // Format notes with additional information
+    $formatted_notes = array();
+    foreach ($notes as $note) {
+        $formatted_notes[] = array(
+            'id' => intval($note->id),
+            'book_id' => intval($note->book_id),
+            'user_id' => intval($note->user_id),
+            'user_name' => $note->display_name,
+            'note_text' => $note->note_text,
+            'page_number' => $note->page_number ? intval($note->page_number) : null,
+            'page_start' => $note->page_start ? intval($note->page_start) : null,
+            'page_end' => $note->page_end ? intval($note->page_end) : null,
+            'is_public' => boolval($note->is_public),
+            'date_created' => $note->date_created,
+            'date_updated' => $note->date_updated
+        );
+    }
+
+    return new WP_REST_Response(array(
+        'success' => true,
+        'book_id' => $book_id,
+        'book_title' => get_the_title($book_id),
+        'notes' => $formatted_notes,
+        'count' => count($formatted_notes)
+    ), 200);
+}
+

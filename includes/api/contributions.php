@@ -107,22 +107,29 @@ function hs_api_submit_characters($request) {
     // Get JSON body
     $json_params = $request->get_json_params();
 
-    if (!isset($json_params['characters']) || !is_array($json_params['characters'])) {
-        return new WP_REST_Response([
-            'success' => false,
-            'message' => 'Characters data is required and must be an array.'
-        ], 400);
+    // Check if marking as "no characters"
+    $has_no_characters = isset($json_params['has_no_characters']) && $json_params['has_no_characters'];
+
+    if (!$has_no_characters) {
+        if (!isset($json_params['characters']) || !is_array($json_params['characters'])) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => 'Characters data is required and must be an array, or set has_no_characters to true.'
+            ], 400);
+        }
+
+        $characters = [];
+        foreach ($json_params['characters'] as $char) {
+            $characters[] = [
+                'name' => sanitize_text_field($char['name']),
+                'description' => isset($char['description']) ? sanitize_text_field($char['description']) : ''
+            ];
+        }
+    } else {
+        $characters = [];
     }
 
-    $characters = [];
-    foreach ($json_params['characters'] as $char) {
-        $characters[] = [
-            'name' => sanitize_text_field($char['name']),
-            'description' => isset($char['description']) ? sanitize_text_field($char['description']) : ''
-        ];
-    }
-
-    $result = hs_submit_characters($user_id, $book_id, $characters);
+    $result = hs_submit_characters($user_id, $book_id, $characters, $has_no_characters);
     return new WP_REST_Response($result, $result['success'] ? 200 : 400);
 }
 
