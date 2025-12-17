@@ -265,7 +265,9 @@ jQuery(document).ready(function($) {
                     action: 'hs_submit_report',
                     nonce: hs_ajax.nonce,
                     book_id: button.data('book-id'),
-                    report_text: $('#hs-report-textarea').val()
+                    report_type: $('#hs-report-type').val(),
+                    report_text: $('#hs-report-textarea').val(),
+                    suggested_correction: $('#hs-suggested-correction').val()
                 },
                 beforeSend: function() {
                     button.text('Submitting report...').prop('disabled', true);
@@ -277,7 +279,9 @@ jQuery(document).ready(function($) {
                         setTimeout(() => {
                             report_modal.hide();
                             button.text('Submit Report').prop('disabled', false);
+                            $('#hs-report-type').val('other');
                             $('#hs-report-textarea').val('');
+                            $('#hs-suggested-correction').val('');
                             feedback_div.text('');
                         }, 2000);
                     } else {

@@ -461,6 +461,21 @@ function gread_register_rest_routes() {
         )
     ));
 
+    // Get notes that mention a specific book
+    register_rest_route('gread/v1', '/books/(?P<book_id>\d+)/mentions', array(
+        'methods' => 'GET',
+        'callback' => 'gread_api_get_notes_mentioning_book',
+        'permission_callback' => '__return_true',
+        'args' => array(
+            'book_id' => array(
+                'required' => true,
+                'validate_callback' => function($param) {
+                    return is_numeric($param);
+                }
+            )
+        )
+    ));
+
     // --- Authors API Routes ---
     register_rest_route('gread/v1', '/authors', array(
         array(

@@ -23,6 +23,7 @@ function hs_character_submissions_create_table() {
         book_id BIGINT(20) UNSIGNED NOT NULL,
         user_id BIGINT(20) UNSIGNED NOT NULL,
         characters_data LONGTEXT NOT NULL,
+        has_no_characters TINYINT(1) DEFAULT 0 NOT NULL,
         status VARCHAR(20) DEFAULT 'pending' NOT NULL,
         submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
         reviewed_by BIGINT(20) UNSIGNED NULL,
@@ -41,7 +42,7 @@ function hs_character_submissions_create_table() {
 /**
  * Submit characters for a book
  */
-function hs_submit_characters($user_id, $book_id, $characters) {
+function hs_submit_characters($user_id, $book_id, $characters, $has_no_characters = false) {
     global $wpdb;
 
     if (!$user_id || !get_userdata($user_id)) {
@@ -53,15 +54,21 @@ function hs_submit_characters($user_id, $book_id, $characters) {
         return ['success' => false, 'message' => 'Invalid book.'];
     }
 
-    if (empty($characters) || !is_array($characters)) {
-        return ['success' => false, 'message' => 'Please provide at least one character.'];
-    }
-
-    // Validate each character
-    foreach ($characters as $character) {
-        if (!isset($character['name']) || empty(trim($character['name']))) {
-            return ['success' => false, 'message' => 'Character names cannot be empty.'];
+    // Allow submission with no characters if the flag is set
+    if (!$has_no_characters) {
+        if (empty($characters) || !is_array($characters)) {
+            return ['success' => false, 'message' => 'Please provide at least one character or mark as "No Characters".'];
         }
+
+        // Validate each character
+        foreach ($characters as $character) {
+            if (!isset($character['name']) || empty(trim($character['name']))) {
+                return ['success' => false, 'message' => 'Character names cannot be empty.'];
+            }
+        }
+    } else {
+        // If marking as "no characters", set empty array
+        $characters = [];
     }
 
     // Check for pending submission
@@ -84,19 +91,24 @@ function hs_submit_characters($user_id, $book_id, $characters) {
             'book_id' => $book_id,
             'user_id' => $user_id,
             'characters_data' => $characters_json,
+            'has_no_characters' => $has_no_characters ? 1 : 0,
             'status' => 'pending',
             'submitted_at' => current_time('mysql')
         ],
-        ['%d', '%d', '%s', '%s', '%s']
+        ['%d', '%d', '%s', '%d', '%s', '%s']
     );
 
     if ($result === false) {
         return ['success' => false, 'message' => 'Failed to submit characters.'];
     }
 
+    $message = $has_no_characters
+        ? 'Book marked as having no characters. Thank you for your contribution!'
+        : 'Characters submitted successfully!';
+
     return [
         'success' => true,
-        'message' => 'Characters submitted successfully!',
+        'message' => $message,
         'submission_id' => $wpdb->insert_id
     ];
 }
@@ -218,6 +230,13 @@ function hs_get_approved_characters($book_id) {
 
     if (empty($submissions)) {
         return null;
+    }
+
+    // Check if the book is marked as having no characters
+    foreach ($submissions as $submission) {
+        if ($submission->has_no_characters) {
+            return ['has_no_characters' => true];
+        }
     }
 
     // Combine all approved characters
